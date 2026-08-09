@@ -20,18 +20,18 @@
       "id": "lid",
       "label": "Lid",
       "file": "stls/open_pill_mini_w_coverplate/Lid.stl",
-      "position": [0, 0, 0],
-      "rotation": [0, 0, 0],
+      "position": [2.162835641816036,9.94652905882316,0],
+      "rotation": [3.141592653589793,0,0],
       "scale": [1, 1, 1],
       "defaultColor": "#f7931a",
-      "colors": ["#f7931a", "#8D45FF", "#000000", "#ffffff", "#ff0000", "#00ff00", "#0000ff"]
+      "colors": ["#f7931a", "#8D45FF", "#000000", "#ffffff", "#ff0000", "#00ff00", "#0000ff", "#ff00ff", "#00ffff", "#ff00ff"]
     },
     {
       "id": "buttons",
       "label": "Buttons",
       "file": "stls/open_pill_mini_w_coverplate/Buttons.stl",
-      "position": [0, 0, 0],
-      "rotation": [0, 0, 0],
+      "position": [26.2429273069011,11.605649959217702,0.3916295741679434],
+      "rotation": [1.5707963267948966,0,0],
       "scale": [1, 1, 1],
       "defaultColor": "#ffffff",
       "colors": ["#f7931a", "#8D45FF", "#000000", "#ffffff", "#ff0000", "#00ff00", "#0000ff"]
@@ -40,8 +40,8 @@
       "id": "thumbstick",
       "label": "Thumbstick",
       "file": "stls/open_pill_mini_w_coverplate/Thumbstick.stl",
-      "position": [0, 0, 0],
-      "rotation": [0, 0, 0],
+      "position": [-23.20947311823501,12.214035621200203,0],
+      "rotation": [0,0,0],
       "scale": [1, 1, 1],
       "defaultColor": "#ffffff",
       "colors": ["#f7931a", "#8D45FF", "#000000", "#ffffff", "#ff0000", "#00ff00", "#0000ff"]

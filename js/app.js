@@ -219,7 +219,13 @@ async function loadCatalog() {
     }
     state.configs = configs;
     buildEnclosureUI();
-    if (configs.length) await setEnclosure(configs[0]);
+    if (configs.length) {
+      await setEnclosure(configs[0]);
+      if (isOwner) {
+        els.designToggle.checked = true;
+        setDesignMode(true);
+      }
+    }
   } catch (err) {
     toast("Error loading enclosures: " + err.message, true);
   }
@@ -315,6 +321,13 @@ function buildPieceUI(config) {
     row.className = "piece-row";
     row.dataset.pieceId = def.id;
 
+    const top = document.createElement("div");
+    top.className = "piece-row-top";
+
+    const label = document.createElement("div");
+    label.className = "piece-label";
+    label.textContent = def.label;
+
     const eye = document.createElement("button");
     eye.type = "button";
     eye.className = "piece-eye";
@@ -325,52 +338,76 @@ function buildPieceUI(config) {
       togglePieceVisible(def.id);
     });
 
-    let colorInput = null;
+    top.appendChild(label);
+    top.appendChild(eye);
+    row.appendChild(top);
+
+    let customColor = null;
+    if (state.designOn) {
+      const tools = document.createElement("div");
+      tools.className = "piece-tools";
+
+      customColor = document.createElement("input");
+      customColor.type = "color";
+      customColor.className = "piece-custom-color";
+      customColor.value = def.defaultColor;
+      customColor.title = "Free color picker";
+      customColor.addEventListener("input", (e) => {
+        const rec = state.records.get(def.id);
+        if (!rec) return;
+        rec.color = e.target.value;
+        rec.mesh.material.color.set(e.target.value);
+        updateSwatchActive(def.id);
+      });
+      customColor.addEventListener("click", (e) => e.stopPropagation());
+
+      const add = document.createElement("button");
+      add.type = "button";
+      add.className = "btn-add-swatch";
+      add.textContent = "+";
+      add.title = "Add this color to the swatch options";
+      add.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const color = customColor.value;
+        if (!color || def.colors.includes(color)) {
+          toast("Color already in palette", true);
+          return;
+        }
+        def.colors.push(color);
+        addSwatchButton(def.id, color);
+        toast("Added " + color + " to palette (saved in JSON export)");
+      });
+
+      tools.appendChild(customColor);
+      tools.appendChild(add);
+      row.appendChild(tools);
+    }
+
     const swatches = document.createElement("div");
     swatches.className = "color-swatches";
 
-    if (def.colors.length) {
-      def.colors.forEach((c) => {
-        const sw = document.createElement("button");
-        sw.type = "button";
-        sw.className = "color-swatch";
-        sw.style.background = c;
-        sw.dataset.color = c;
-        sw.title = c;
-        sw.addEventListener("click", (e) => {
-          e.stopPropagation();
-          const rec = state.records.get(def.id);
-          if (!rec) return;
-          rec.color = c;
-          rec.mesh.material.color.set(c);
-          updateSwatchActive(def.id);
-        });
-        swatches.appendChild(sw);
-      });
-      row.appendChild(swatches);
-    } else {
-      colorInput = document.createElement("input");
-      colorInput.type = "color";
-      colorInput.value = def.defaultColor;
-      colorInput.addEventListener("input", (e) => {
+    def.colors.forEach((c) => {
+      swatches.appendChild(makeSwatch(def.id, c));
+    });
+    if (!def.colors.length && !state.designOn) {
+      const fallback = document.createElement("input");
+      fallback.type = "color";
+      fallback.className = "piece-custom-color";
+      fallback.value = def.defaultColor;
+      fallback.title = "Pick a color";
+      fallback.addEventListener("input", (e) => {
         const rec = state.records.get(def.id);
         if (!rec) return;
         rec.color = e.target.value;
         rec.mesh.material.color.set(e.target.value);
       });
-      row.appendChild(colorInput);
+      fallback.addEventListener("click", (e) => e.stopPropagation());
+      swatches.appendChild(fallback);
     }
-
-    const label = document.createElement("div");
-    label.className = "piece-label";
-    label.textContent = def.label;
-
-    row.appendChild(eye);
-    if (colorInput) row.appendChild(colorInput);
-    row.appendChild(label);
+    row.appendChild(swatches);
 
     row.addEventListener("click", (e) => {
-      if (e.target === colorInput) return;
+      if (e.target === customColor) return;
       const rec = state.records.get(def.id);
       if (!rec || !rec.mesh.visible) return;
       if (state.designOn) {
@@ -382,10 +419,42 @@ function buildPieceUI(config) {
   });
 }
 
+function makeSwatch(pieceId, color) {
+  const sw = document.createElement("button");
+  sw.type = "button";
+  sw.className = "color-swatch";
+  sw.style.background = color;
+  sw.dataset.color = color;
+  sw.title = color;
+  sw.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const rec = state.records.get(pieceId);
+    if (!rec) return;
+    rec.color = color;
+    rec.mesh.material.color.set(color);
+    updateSwatchActive(pieceId);
+  });
+  return sw;
+}
+
+function addSwatchButton(pieceId, color) {
+  const row = els.pieceList.querySelector('.piece-row[data-piece-id="' + pieceId + '"]');
+  if (!row) return;
+  const swatches = row.querySelector(".color-swatches");
+  swatches.appendChild(makeSwatch(pieceId, color));
+  updateSwatchActive(pieceId);
+}
+
 function setDesignMode(on) {
   state.designOn = on;
   els.designPanel.classList.toggle("hidden", !on);
   editor.setEnabled(on);
+  if (state.current) {
+    buildPieceUI(state.current);
+    syncColorInputs();
+    [...state.records.keys()].forEach(updateEyeState);
+    updatePieceRowSelection();
+  }
   gridVisible = on;
   grid.visible = on;
   els.btnGrid.classList.toggle("active", on);
@@ -533,7 +602,7 @@ function updateEyeState(id) {
   const row = els.pieceList.querySelector('.piece-row[data-piece-id="' + id + '"]');
   if (!row || !rec) return;
   row.querySelector(".piece-eye").classList.toggle("off", !rec.mesh.visible);
-  row.querySelectorAll("input[type=color], .color-swatch").forEach((el) => (el.disabled = !rec.mesh.visible));
+  row.querySelectorAll("input[type=color], .color-swatch, .btn-add-swatch").forEach((el) => (el.disabled = !rec.mesh.visible));
   row.classList.toggle("dimmed", !rec.mesh.visible);
 }
 

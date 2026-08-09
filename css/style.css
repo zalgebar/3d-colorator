@@ -134,13 +134,20 @@ html, body {
 
 .piece-row {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
   padding: 6px 8px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg-3);
   cursor: pointer;
+}
+
+.piece-row-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .piece-row:hover { border-color: #3d4a58; }
@@ -165,12 +172,48 @@ html, body {
 
 .piece-row .piece-label { flex: 1; font-weight: 600; }
 
+.piece-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
 .color-swatches {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
+  width: 100%;
+}
+
+.btn-add-swatch {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px dashed var(--border);
+  border-radius: 5px;
+  background: var(--bg);
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
   flex-shrink: 0;
 }
+
+.btn-add-swatch:hover { color: var(--text); border-color: #5b6b7c; }
+.btn-add-swatch:disabled { opacity: 0.4; cursor: default; }
+.btn-add-swatch:disabled:hover { color: var(--text-dim); border-color: var(--border); }
+
+.piece-custom-color {
+  width: 22px !important;
+  height: 22px !important;
+  border-radius: 5px !important;
+}
+
+.piece-custom-color::-webkit-color-swatch-wrapper { padding: 0; }
+.piece-custom-color::-webkit-color-swatch { border: none; border-radius: 4px; }
+.piece-custom-color::-moz-color-swatch { border: none; border-radius: 4px; }
 
 .color-swatch {
   width: 22px;
