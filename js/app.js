@@ -37,7 +37,6 @@ const els = {
   enclosureList: document.getElementById("enclosure-list"),
   enclosureDesc: document.getElementById("enclosure-desc"),
   pieceList: document.getElementById("piece-list"),
-  designToggle: document.getElementById("design-toggle"),
   designPanel: document.getElementById("editor-panel"),
   selectedName: document.getElementById("selected-name"),
   transformModes: document.getElementById("transform-modes"),
@@ -168,7 +167,6 @@ function applyOwnerGating(owner) {
 }
 
 function wireUI() {
-  els.designToggle.addEventListener("change", (e) => setDesignMode(e.target.checked));
   els.btnFrame.addEventListener("click", frameView);
   els.btnOrigin.addEventListener("click", centerOnOrigin);
   els.btnAxes.addEventListener("click", toggleAxes);
@@ -254,10 +252,7 @@ async function loadCatalog() {
     buildEnclosureUI();
     if (configs.length) {
       await setEnclosure(configs[0]);
-      if (isOwner) {
-        els.designToggle.checked = true;
-        setDesignMode(true);
-      }
+      if (isOwner) setDesignMode(true);
     }
   } catch (err) {
     toast("Error loading enclosures: " + err.message, true);

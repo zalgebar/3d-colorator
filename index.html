@@ -20,16 +20,17 @@
 <header class="topbar">
   <div class="brand">SeedSigner <span>Enclosure Designer</span></div>
   <div class="topbar-right">
-    <button id="btn-frame" class="btn">Frame</button>
-    <button id="btn-origin" class="btn">Origin</button>
-    <button id="btn-axes" class="btn">Axis</button>
-    <button id="btn-grid" class="btn">Grid</button>
+    <button id="btn-frame" class="btn">Fit Object in Frame</button>
+    <button id="btn-origin" class="btn">Center Camera on Origin</button>
+    <button id="btn-axes" class="btn">
+      <svg class="eye-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><path class="lens" d="M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>
+      Axis
+    </button>
+    <button id="btn-grid" class="btn">
+      <svg class="eye-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><path class="lens" d="M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>
+      Grid
+    </button>
     <button id="btn-screenshot" class="btn">PNG</button>
-    <label class="toggle" data-owner-only>
-      <input type="checkbox" id="design-toggle">
-      <span class="toggle-track"></span>
-      <span class="toggle-label">Design mode</span>
-    </label>
   </div>
 </header>
 
@@ -44,7 +45,7 @@
     <section>
       <h2>Pieces</h2>
       <p class="hint" data-public-only>Pick a color for each piece.</p>
-      <p class="hint hidden" data-owner-only>Pick a color for each piece. Click a piece in the viewport (in Design mode) to move, rotate or scale it.</p>
+      <p class="hint hidden" data-owner-only>Pick a color for each piece. Click a piece in the viewport to move, rotate or scale it.</p>
       <div id="piece-list" class="piece-list"></div>
     </section>
 

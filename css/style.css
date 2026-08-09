@@ -66,6 +66,16 @@ html, body {
   color: #fff;
 }
 
+.btn .eye-svg {
+  width: 13px;
+  height: 13px;
+  display: inline-block;
+  vertical-align: -2px;
+  margin-right: 5px;
+}
+
+.btn:not(.active) .eye-svg path.lens { display: none; }
+
 .layout {
   display: flex;
   height: calc(100% - 48px);
