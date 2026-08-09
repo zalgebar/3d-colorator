@@ -10,11 +10,11 @@
       "id": "main_chassis",
       "label": "Main Chassis",
       "file": "stls/open_pill_mini/Main_Chassis.stl",
-      "position": [0, 0, 0],
-      "rotation": [0, 0, 0],
-      "scale": [1, 1, 1],
+      "position": [0,0,0],
+      "rotation": [-1.5707963267948966,0,-1.5707963267948966],
+      "scale": [1,1,1],
       "defaultColor": "#f75403",
-      "colors": ["#f75403", "#9a57bd", "#000000", "#ffffff", "#eb3a3a", "#ffd00b", "#00ae42", "#002e96", "#f55a74", "#6f5034", "#adb1b2"]
+      "colors": ["#f75403", "#9a57bd", "#eb3a3a", "#ffd00b", "#00ae42", "#002e96", "#000000", "#adb1b2", "#ffffff", "#f55a74", "#6f5034"]
     }
   ]
 }
