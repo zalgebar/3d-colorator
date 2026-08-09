@@ -80,6 +80,7 @@ const els = {
   loading: document.getElementById("loading"),
   toast: document.getElementById("toast"),
   viewport: document.getElementById("viewport"),
+  aboutVersion: document.getElementById("about-version"),
 };
 
 let renderer, scene, camera, controls, dirLight, editor, loader, grid, axes;
@@ -242,6 +243,7 @@ async function loadCatalog() {
     const res = await fetch("enclosures/manifest.json", { cache: "no-cache" });
     if (!res.ok) throw new Error("Could not load enclosures/manifest.json (" + res.status + ")");
     const manifest = await res.json();
+    if (els.aboutVersion && manifest.version) els.aboutVersion.textContent = manifest.version;
     const ids = Array.isArray(manifest.enclosures) ? manifest.enclosures : [];
     const configs = [];
     for (const id of ids) {

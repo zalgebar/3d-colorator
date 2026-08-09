@@ -113,6 +113,19 @@ html, body {
 .hint b { color: var(--text); }
 .desc { color: var(--text-dim); margin: 8px 0 0; line-height: 1.45; }
 
+.about-version {
+  margin: 0;
+  font-weight: normal;
+  color: var(--text);
+}
+
+.about-text {
+  margin: 8px 0 0;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .enclosure-list {
   display: flex;
   flex-direction: column;
