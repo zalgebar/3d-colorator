@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SeedSigner Enclosure Designer</title>
+<link rel="stylesheet" href="css/style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/"
+  }
+}
+</script>
+<script type="module" src="js/app.js"></script>
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">SeedSigner <span>Enclosure Designer</span></div>
+  <div class="topbar-right">
+    <button id="btn-frame" class="btn">Frame view</button>
+    <label class="toggle" data-owner-only>
+      <input type="checkbox" id="design-toggle">
+      <span class="toggle-track"></span>
+      <span class="toggle-label">Design mode</span>
+    </label>
+  </div>
+</header>
+
+<main class="layout">
+  <aside class="sidebar">
+    <section>
+      <h2>Enclosure</h2>
+      <div id="enclosure-list" class="enclosure-list"></div>
+      <p id="enclosure-desc" class="desc"></p>
+    </section>
+
+    <section>
+      <h2>Pieces</h2>
+      <p class="hint" data-public-only>Pick a color for each piece.</p>
+      <p class="hint hidden" data-owner-only>Pick a color for each piece. Click a piece in the viewport (in Design mode) to move, rotate or scale it.</p>
+      <div id="piece-list" class="piece-list"></div>
+    </section>
+
+    <section id="editor-panel" class="hidden" data-owner-only>
+      <h2>Transform <span id="selected-name"></span></h2>
+      <div class="seg" id="transform-modes">
+        <button data-mode="translate" class="active">Move</button>
+        <button data-mode="rotate">Rotate</button>
+        <button data-mode="scale">Scale</button>
+      </div>
+      <div id="transform-inputs" class="transform-inputs"></div>
+      <div class="btn-row">
+        <button id="btn-reset-transform" class="btn">Reset</button>
+        <button id="btn-reset-all" class="btn">Reset all</button>
+      </div>
+      <p class="hint">Shortcuts: <b>G</b> move, <b>R</b> rotate, <b>S</b> scale, <b>F</b> frame, <b>Esc</b> deselect. Right-drag to orbit.</p>
+    </section>
+
+    <section data-owner-only>
+      <h2>Config</h2>
+      <div class="btn-row">
+        <button id="btn-copy" class="btn">Copy JSON</button>
+        <button id="btn-download" class="btn">Download JSON</button>
+        <button id="btn-import" class="btn">Import JSON</button>
+      </div>
+      <p class="hint">Design mode places the pieces. Copy or download the JSON and save it back into the enclosure file to make the placement permanent.</p>
+    </section>
+  </aside>
+
+  <div class="viewport-wrap">
+    <canvas id="viewport"></canvas>
+    <div id="loading" class="overlay hidden"><div class="spinner"></div><span>Loading enclosure…</span></div>
+    <div id="toast" class="toast hidden"></div>
+  </div>
+</main>
+
+<dialog id="import-dialog">
+  <h2>Import config JSON</h2>
+  <p class="hint">Paste an exported enclosure config. Transforms and colors will be applied to the current view.</p>
+  <textarea id="import-text" spellcheck="false" placeholder='{ "pieces": [ … ] }'></textarea>
+  <div class="dialog-actions">
+    <button id="btn-import-apply" class="btn primary">Apply</button>
+    <button id="btn-import-cancel" class="btn">Cancel</button>
+  </div>
+</dialog>
+
+</body>
+</html>

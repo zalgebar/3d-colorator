@@ -1,0 +1,46 @@
+{
+  "id": "open_pill_mini_w_coverplate",
+  "name": "Open Pill Mini w/ Coverplate",
+  "description": "Multi-piece enclosure with buttons, lid coverplate and thumbstick.",
+  "axes": {
+    "up": "z"
+  },
+  "pieces": [
+    {
+      "id": "main_chassis",
+      "label": "Main Chassis",
+      "file": "stls/open_pill_mini_w_coverplate/Main_Chassis.stl",
+      "position": [0, 0, 0],
+      "rotation": [0, 0, 0],
+      "scale": [1, 1, 1],
+      "defaultColor": "#4d4d4d"
+    },
+    {
+      "id": "lid",
+      "label": "Lid",
+      "file": "stls/open_pill_mini_w_coverplate/Lid.stl",
+      "position": [0, 0, 0],
+      "rotation": [0, 0, 0],
+      "scale": [1, 1, 1],
+      "defaultColor": "#6b6b6b"
+    },
+    {
+      "id": "buttons",
+      "label": "Buttons",
+      "file": "stls/open_pill_mini_w_coverplate/Buttons.stl",
+      "position": [0, 0, 0],
+      "rotation": [0, 0, 0],
+      "scale": [1, 1, 1],
+      "defaultColor": "#2e2e2e"
+    },
+    {
+      "id": "thumbstick",
+      "label": "Thumbstick",
+      "file": "stls/open_pill_mini_w_coverplate/Thumbstick.stl",
+      "position": [0, 0, 0],
+      "rotation": [0, 0, 0],
+      "scale": [1, 1, 1],
+      "defaultColor": "#1f1f1f"
+    }
+  ]
+}
