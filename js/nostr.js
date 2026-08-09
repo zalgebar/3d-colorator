@@ -4,7 +4,7 @@ export const RECIPIENT_NAME = "zalgebar";
 const WELL_KNOWN_URL = "https://zalgebar.com/.well-known/nostr.json";
 const NSEC_STORE_KEY = "seedsigner.nsec";
 const DEFAULT_RELAYS = [
-  "wss://relay.damus.io",
+  "wss://relay.0xchat.com",
   "wss://relay.primal.net",
   "wss://nos.lol",
 ];
