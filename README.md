@@ -91,3 +91,11 @@ in Design mode and the saved placement becomes what every visitor sees:
    config file so the placement becomes the permanent default for everyone.
 
 Colors are per piece and purely a preview choice — they don't need to be committed.
+
+## Disclosure
+
+This project is an independent, community-built tool. It is **not affiliated with, endorsed by, or sponsored by** the SeedSigner project or its maintainers. "SeedSigner" and the SeedSigner name are trademarks of their respective owners, used here only to describe the hardware this tool is designed for. The official SeedSigner project lives at [https://seedsigner.com/](https://seedsigner.com/).
+
+## Support this Project
+
+Donate to this project via lightning: zalgebar@rizful.com
