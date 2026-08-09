@@ -574,6 +574,9 @@ dialog input[type="file"] {
 
 @media (max-width: 760px) {
   html, body { overflow: auto; }
+  .topbar { height: auto; flex-wrap: wrap; padding: 8px 14px; gap: 8px; }
+  .brand { flex-basis: 100%; }
+  .topbar-right { width: 100%; justify-content: flex-start; }
   .layout { flex-direction: column; height: auto; }
   .sidebar { width: 100%; min-width: 0; max-height: 50vh; border-right: none; border-bottom: 1px solid var(--border); }
   .viewport-wrap { height: 60vh; min-height: 400px; }
