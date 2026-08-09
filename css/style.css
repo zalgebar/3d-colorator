@@ -549,6 +549,12 @@ dialog textarea {
   resize: vertical;
 }
 
+dialog input[type="file"] {
+  margin-top: 10px;
+  color: var(--text);
+  font-size: 12px;
+}
+
 .dialog-actions {
   display: flex;
   justify-content: flex-end;

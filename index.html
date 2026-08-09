@@ -67,6 +67,7 @@
       <h2>Share</h2>
       <div class="btn-row">
         <button id="btn-download-design" class="btn">Download design</button>
+        <button id="btn-import-design" class="btn">Import design</button>
         <button id="btn-submit" class="btn primary">Submit via nostr DM</button>
       </div>
       <p class="hint">Save or submit your coloring as a JSON design. Submissions are sent as an encrypted NIP-17 direct message (order ID required).</p>
@@ -97,6 +98,17 @@
   <div class="dialog-actions">
     <button id="btn-import-apply" class="btn primary">Apply</button>
     <button id="btn-import-cancel" class="btn">Cancel</button>
+  </div>
+</dialog>
+
+<dialog id="design-import-dialog">
+  <h2>Import design</h2>
+  <p class="hint">Choose a design file you downloaded, or paste its JSON. Colors will be applied to the current enclosure.</p>
+  <input type="file" id="design-file" accept=".json,application/json">
+  <textarea id="design-import-text" spellcheck="false" placeholder='{ "type": "enclosure-design", "colors": { … } }'></textarea>
+  <div class="dialog-actions">
+    <button id="btn-design-import-apply" class="btn primary">Apply</button>
+    <button id="btn-design-import-cancel" class="btn">Cancel</button>
   </div>
 </dialog>
 

@@ -53,11 +53,17 @@ const els = {
   btnDownload: document.getElementById("btn-download"),
   btnImport: document.getElementById("btn-import"),
   btnDownloadDesign: document.getElementById("btn-download-design"),
+  btnImportDesign: document.getElementById("btn-import-design"),
   btnSubmit: document.getElementById("btn-submit"),
   importDialog: document.getElementById("import-dialog"),
   importText: document.getElementById("import-text"),
   btnImportApply: document.getElementById("btn-import-apply"),
   btnImportCancel: document.getElementById("btn-import-cancel"),
+  designImportDialog: document.getElementById("design-import-dialog"),
+  designFile: document.getElementById("design-file"),
+  designImportText: document.getElementById("design-import-text"),
+  btnDesignImportApply: document.getElementById("btn-design-import-apply"),
+  btnDesignImportCancel: document.getElementById("btn-design-import-cancel"),
   submitDialog: document.getElementById("submit-dialog"),
   orderId: document.getElementById("order-id"),
   identityMode: document.getElementById("identity-mode"),
@@ -82,6 +88,11 @@ let toastTimer = null;
 let onetimeSk = null;
 let gridVisible = isOwner;
 let axesVisible = isOwner;
+let dirty = false;
+
+function markDirty() {
+  dirty = true;
+}
 
 function init() {
   renderer = new THREE.WebGLRenderer({ canvas: els.viewport, antialias: true });
@@ -164,6 +175,23 @@ function wireUI() {
   els.btnGrid.addEventListener("click", toggleGrid);
   els.btnScreenshot.addEventListener("click", screenshot);
   els.btnDownloadDesign.addEventListener("click", downloadDesign);
+  els.btnImportDesign.addEventListener("click", () => {
+    els.designImportText.value = "";
+    els.designFile.value = "";
+    els.designImportDialog.showModal();
+  });
+  els.designFile.addEventListener("change", async () => {
+    const file = els.designFile.files[0];
+    if (!file) return;
+    const text = await file.text();
+    els.designImportDialog.close();
+    applyImportedDesign(text);
+  });
+  els.btnDesignImportApply.addEventListener("click", () => {
+    els.designImportDialog.close();
+    applyImportedDesign(els.designImportText.value);
+  });
+  els.btnDesignImportCancel.addEventListener("click", () => els.designImportDialog.close());
   els.btnSubmit.addEventListener("click", openSubmitDialog);
   els.btnResetTransform.addEventListener("click", resetSelected);
   els.btnResetAll.addEventListener("click", resetAllTransforms);
@@ -193,6 +221,11 @@ function wireUI() {
   els.btnSubmitCancel.addEventListener("click", () => els.submitDialog.close());
 
   window.addEventListener("keydown", onKeyDown);
+  window.addEventListener("beforeunload", (e) => {
+    if (!dirty) return;
+    e.preventDefault();
+    e.returnValue = "";
+  });
 }
 
 function onResize() {
@@ -237,7 +270,10 @@ function buildEnclosureUI() {
     const card = document.createElement("div");
     card.className = "enclosure-card";
     card.textContent = cfg.name;
-    card.addEventListener("click", () => setEnclosure(cfg));
+    card.addEventListener("click", () => {
+      if (dirty && !confirm("You have unsaved changes. Switch enclosure anyway?")) return;
+      setEnclosure(cfg);
+    });
     els.enclosureList.appendChild(card);
   });
 }
@@ -250,6 +286,7 @@ function markActiveEnclosure(id) {
 
 async function setEnclosure(config) {
   if (state.current && state.current.id === config.id && state.group.children.length > 0) return;
+  dirty = false;
   state.current = config;
   state.selectedId = null;
   editor.detach();
@@ -358,6 +395,7 @@ function buildPieceUI(config) {
         rec.color = e.target.value;
         rec.mesh.material.color.set(e.target.value);
         updateSwatchActive(def.id);
+        markDirty();
       });
       customColor.addEventListener("click", (e) => e.stopPropagation());
 
@@ -400,6 +438,7 @@ function buildPieceUI(config) {
         if (!rec) return;
         rec.color = e.target.value;
         rec.mesh.material.color.set(e.target.value);
+        markDirty();
       });
       fallback.addEventListener("click", (e) => e.stopPropagation());
       swatches.appendChild(fallback);
@@ -433,6 +472,7 @@ function makeSwatch(pieceId, color) {
     rec.color = color;
     rec.mesh.material.color.set(color);
     updateSwatchActive(pieceId);
+    markDirty();
   });
   return sw;
 }
@@ -498,6 +538,7 @@ function pieceLabel(id) {
 
 function onTransformChange(id, t) {
   updateTransformInputs(id, t);
+  markDirty();
 }
 
 function buildTransformInputs(id) {
@@ -704,7 +745,10 @@ function copyConfig() {
   const json = JSON.stringify(buildExportObject(state.current, state.records), null, 2);
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(json)
-      .then(() => toast("Config copied to clipboard"))
+      .then(() => {
+        dirty = false;
+        toast("Config copied to clipboard");
+      })
       .catch(() => fallbackCopy(json));
   } else {
     fallbackCopy(json);
@@ -720,6 +764,7 @@ function fallbackCopy(text) {
   ta.select();
   try {
     document.execCommand("copy");
+    dirty = false;
     toast("Config copied to clipboard");
   } catch {
     toast("Could not copy — use Download JSON", true);
@@ -738,6 +783,7 @@ function downloadConfig() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  dirty = false;
   toast("Downloaded " + a.download);
 }
 
@@ -771,7 +817,42 @@ function downloadDesign() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  dirty = false;
   toast("Saved " + name);
+}
+
+function applyImportedDesign(text) {
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch (err) {
+    toast("Invalid JSON: " + err.message, true);
+    return;
+  }
+  if (!parsed || parsed.type !== "enclosure-design" || !parsed.colors) {
+    toast("Not a design file (missing type/colors)", true);
+    return;
+  }
+  if (parsed.enclosure && state.current && parsed.enclosure !== state.current.id) {
+    toast("This design is for '" + (parsed.enclosureName || parsed.enclosure) + "' — switch enclosure first.", true);
+    return;
+  }
+  let applied = 0;
+  Object.entries(parsed.colors).forEach(([id, color]) => {
+    if (typeof color !== "string" || !/^#[0-9a-fA-F]{6}$/.test(color)) return;
+    const rec = state.records.get(id);
+    if (!rec) return;
+    rec.color = color.toLowerCase();
+    rec.mesh.material.color.set(rec.color);
+    applied++;
+  });
+  syncColorInputs();
+  if (applied) {
+    dirty = false;
+    toast("Imported " + applied + " color" + (applied === 1 ? "" : "s"));
+  } else {
+    toast("No matching pieces found", true);
+  }
 }
 
 function openSubmitDialog() {
@@ -903,6 +984,7 @@ function applyImported(text) {
     updateTransformInputs(state.selectedId, gTransform(state.records.get(state.selectedId).mesh));
   }
   frameView();
+  dirty = false;
   toast("Imported transforms and colors");
 }
 
