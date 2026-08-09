@@ -122,7 +122,7 @@ export async function sendDesign({ recipient, identity, content, subject, onStat
 
   const pool = new NT.SimplePool();
   const results = await Promise.allSettled(
-    relays.map((url) => pool.publish([url], wrap, 5000))
+    pool.publish(relays, wrap, { maxWait: 10000 })
   );
   pool.close(relays);
 
