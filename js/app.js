@@ -238,13 +238,13 @@ function onResize() {
 
 async function loadCatalog() {
   try {
-    const res = await fetch("enclosures/manifest.json");
+    const res = await fetch("enclosures/manifest.json", { cache: "no-cache" });
     if (!res.ok) throw new Error("Could not load enclosures/manifest.json (" + res.status + ")");
     const manifest = await res.json();
     const ids = Array.isArray(manifest.enclosures) ? manifest.enclosures : [];
     const configs = [];
     for (const id of ids) {
-      const r = await fetch("enclosures/" + encodeURIComponent(id) + ".json");
+      const r = await fetch("enclosures/" + encodeURIComponent(id) + ".json", { cache: "no-cache" });
       if (!r.ok) throw new Error("Could not load enclosure " + id);
       configs.push(normalizeConfig(await r.json()));
     }
