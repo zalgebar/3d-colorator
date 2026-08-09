@@ -88,6 +88,7 @@ let onetimeSk = null;
 let gridVisible = isOwner;
 let axesVisible = isOwner;
 let dirty = false;
+let swatchDrag = null;
 
 function markDirty() {
   dirty = true;
@@ -420,7 +421,7 @@ function buildPieceUI(config) {
     swatches.className = "color-swatches";
 
     def.colors.forEach((c) => {
-      swatches.appendChild(makeSwatch(def.id, c));
+      swatches.appendChild(makeSwatchCell(def.id, c));
     });
     if (!def.colors.length && !state.designOn) {
       const fallback = document.createElement("input");
@@ -437,6 +438,12 @@ function buildPieceUI(config) {
       });
       fallback.addEventListener("click", (e) => e.stopPropagation());
       swatches.appendChild(fallback);
+    }
+    if (state.designOn) {
+      swatches.addEventListener("pointerdown", (e) => onSwatchPointerDown(e, def.id));
+      swatches.addEventListener("pointermove", onSwatchPointerMove);
+      swatches.addEventListener("pointerup", onSwatchPointerEnd);
+      swatches.addEventListener("pointercancel", onSwatchPointerEnd);
     }
     row.appendChild(swatches);
 
@@ -472,11 +479,106 @@ function makeSwatch(pieceId, color) {
   return sw;
 }
 
+function makeSwatchCell(pieceId, color) {
+  if (!state.designOn) return makeSwatch(pieceId, color);
+  const wrap = document.createElement("div");
+  wrap.className = "swatch-wrap";
+  wrap.dataset.color = color;
+  wrap.title = "Drag to reorder · right-click to remove";
+  wrap.appendChild(makeSwatch(pieceId, color));
+  wrap.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    removeSwatch(pieceId, color, wrap);
+  });
+  return wrap;
+}
+
+function onSwatchPointerDown(e, pieceId) {
+  if (e.button !== 0) return;
+  const wrap = e.target.closest(".swatch-wrap");
+  if (!wrap) return;
+  swatchDrag = {
+    pieceId,
+    wrap,
+    startX: e.clientX,
+    startY: e.clientY,
+    moved: false,
+  };
+  try {
+    e.currentTarget.setPointerCapture(e.pointerId);
+  } catch {}
+}
+
+function onSwatchPointerMove(e) {
+  if (!swatchDrag) return;
+  const { wrap, startX, startY } = swatchDrag;
+  if (!swatchDrag.moved && Math.hypot(e.clientX - startX, e.clientY - startY) < 5) return;
+  swatchDrag.moved = true;
+  wrap.classList.add("dragging");
+  const container = wrap.parentElement;
+  if (!container) return;
+  const after = swatchDropTarget(container, e.clientX, e.clientY);
+  if (after) {
+    if (wrap.nextElementSibling !== after) container.insertBefore(wrap, after);
+  } else if (wrap.nextElementSibling) {
+    container.appendChild(wrap);
+  }
+}
+
+function onSwatchPointerEnd() {
+  if (!swatchDrag) return;
+  const { pieceId, wrap, moved } = swatchDrag;
+  swatchDrag = null;
+  wrap.classList.remove("dragging");
+  if (moved) syncSwatchOrder(pieceId);
+}
+
+function swatchDropTarget(container, x, y) {
+  const items = [...container.querySelectorAll(".swatch-wrap:not(.dragging)")];
+  let closest = null;
+  let best = Infinity;
+  for (const child of items) {
+    const box = child.getBoundingClientRect();
+    const d = Math.hypot(x - (box.left + box.width / 2), y - (box.top + box.height / 2));
+    if (d < best) {
+      best = d;
+      closest = child;
+    }
+  }
+  if (!closest) return null;
+  const box = closest.getBoundingClientRect();
+  const before = x < box.left + box.width / 2 && y < box.top + box.height;
+  return before ? closest : closest.nextElementSibling;
+}
+
+function syncSwatchOrder(pieceId) {
+  if (!state.current) return;
+  const def = state.current.pieces.find((p) => p.id === pieceId);
+  const row = els.pieceList.querySelector('.piece-row[data-piece-id="' + pieceId + '"]');
+  if (!def || !row) return;
+  const order = [...row.querySelectorAll(".swatch-wrap")].map((w) => w.dataset.color);
+  def.colors.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+  updateSwatchActive(pieceId);
+  markDirty();
+}
+
+function removeSwatch(pieceId, color, wrap) {
+  if (!state.current) return;
+  const def = state.current.pieces.find((p) => p.id === pieceId);
+  if (!def) return;
+  def.colors = def.colors.filter((c) => c !== color);
+  wrap.remove();
+  updateSwatchActive(pieceId);
+  markDirty();
+  toast("Removed " + color + " from palette");
+}
+
 function addSwatchButton(pieceId, color) {
   const row = els.pieceList.querySelector('.piece-row[data-piece-id="' + pieceId + '"]');
   if (!row) return;
   const swatches = row.querySelector(".color-swatches");
-  swatches.appendChild(makeSwatch(pieceId, color));
+  swatches.appendChild(makeSwatchCell(pieceId, color));
   updateSwatchActive(pieceId);
 }
 

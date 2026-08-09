@@ -241,6 +241,18 @@ html, body {
 .color-swatch:disabled { opacity: 0.4; cursor: default; }
 .color-swatch:disabled:hover { border-color: var(--border); }
 
+.swatch-wrap {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  cursor: grab;
+  touch-action: none;
+}
+
+.swatch-wrap .color-swatch { cursor: grab; }
+.swatch-wrap.dragging { opacity: 0.55; }
+.swatch-wrap.dragging .color-swatch { cursor: grabbing; }
+
 .piece-row .piece-note {
   font-size: 11px;
   color: var(--text-dim);
