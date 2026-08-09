@@ -4,6 +4,23 @@ import { STLLoader } from "three/addons/loaders/STLLoader.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { normalizeConfig, buildExportObject } from "./config.js";
 import { DesignEditor } from "./editor.js";
+import {
+  hasExtension,
+  getRecipient,
+  resolveIdentity,
+  sendDesign,
+  buildDesignPayload,
+  savedNsec,
+  saveNsec,
+  npubOf,
+} from "./nostr.js";
+
+const NT = window.NostrTools;
+const EYE_SVG =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+  '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>' +
+  '<path class="lens" d="M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/>' +
+  "</svg>";
 
 const isOwner = new URLSearchParams(window.location.search).has("design");
 
@@ -28,20 +45,43 @@ const els = {
   btnResetTransform: document.getElementById("btn-reset-transform"),
   btnResetAll: document.getElementById("btn-reset-all"),
   btnFrame: document.getElementById("btn-frame"),
+  btnOrigin: document.getElementById("btn-origin"),
+  btnAxes: document.getElementById("btn-axes"),
+  btnGrid: document.getElementById("btn-grid"),
+  btnScreenshot: document.getElementById("btn-screenshot"),
   btnCopy: document.getElementById("btn-copy"),
   btnDownload: document.getElementById("btn-download"),
   btnImport: document.getElementById("btn-import"),
+  btnDownloadDesign: document.getElementById("btn-download-design"),
+  btnSubmit: document.getElementById("btn-submit"),
   importDialog: document.getElementById("import-dialog"),
   importText: document.getElementById("import-text"),
   btnImportApply: document.getElementById("btn-import-apply"),
   btnImportCancel: document.getElementById("btn-import-cancel"),
+  submitDialog: document.getElementById("submit-dialog"),
+  orderId: document.getElementById("order-id"),
+  identityMode: document.getElementById("identity-mode"),
+  identityExtension: document.getElementById("identity-extension"),
+  extensionPubkey: document.getElementById("extension-pubkey"),
+  identityNsec: document.getElementById("identity-nsec"),
+  nsecInput: document.getElementById("nsec-input"),
+  nsecRemember: document.getElementById("nsec-remember"),
+  identityOnetime: document.getElementById("identity-onetime"),
+  onetimePubkey: document.getElementById("onetime-pubkey"),
+  submitPreview: document.getElementById("submit-preview"),
+  submitStatus: document.getElementById("submit-status"),
+  btnSubmitSend: document.getElementById("btn-submit-send"),
+  btnSubmitCancel: document.getElementById("btn-submit-cancel"),
   loading: document.getElementById("loading"),
   toast: document.getElementById("toast"),
   viewport: document.getElementById("viewport"),
 };
 
-let renderer, scene, camera, controls, dirLight, editor, loader;
+let renderer, scene, camera, controls, dirLight, editor, loader, grid, axes;
 let toastTimer = null;
+let onetimeSk = null;
+let gridVisible = isOwner;
+let axesVisible = isOwner;
 
 function init() {
   renderer = new THREE.WebGLRenderer({ canvas: els.viewport, antialias: true });
@@ -76,12 +116,16 @@ function init() {
   fill.position.set(-120, 60, -140);
   scene.add(fill);
 
-  const grid = new THREE.GridHelper(240, 24, 0x39414d, 0x232932);
+  grid = new THREE.GridHelper(240, 24, 0x39414d, 0x232932);
   grid.position.y = -0.01;
   scene.add(grid);
+  grid.visible = gridVisible;
+  els.btnGrid.classList.toggle("active", gridVisible);
 
-  const axes = new THREE.AxesHelper(30);
+  axes = new THREE.AxesHelper(30);
   scene.add(axes);
+  axes.visible = axesVisible;
+  els.btnAxes.classList.toggle("active", axesVisible);
 
   state.group = new THREE.Group();
   scene.add(state.group);
@@ -115,6 +159,12 @@ function applyOwnerGating(owner) {
 function wireUI() {
   els.designToggle.addEventListener("change", (e) => setDesignMode(e.target.checked));
   els.btnFrame.addEventListener("click", frameView);
+  els.btnOrigin.addEventListener("click", centerOnOrigin);
+  els.btnAxes.addEventListener("click", toggleAxes);
+  els.btnGrid.addEventListener("click", toggleGrid);
+  els.btnScreenshot.addEventListener("click", screenshot);
+  els.btnDownloadDesign.addEventListener("click", downloadDesign);
+  els.btnSubmit.addEventListener("click", openSubmitDialog);
   els.btnResetTransform.addEventListener("click", resetSelected);
   els.btnResetAll.addEventListener("click", resetAllTransforms);
   els.btnCopy.addEventListener("click", copyConfig);
@@ -136,6 +186,11 @@ function wireUI() {
     els.transformModes.querySelectorAll("button").forEach((b) => b.classList.toggle("active", b === btn));
     editor.setMode(btn.dataset.mode);
   });
+
+  els.orderId.addEventListener("input", updateSubmitPreview);
+  els.identityMode.addEventListener("change", onIdentityModeChange);
+  els.btnSubmitSend.addEventListener("click", onSubmitSend);
+  els.btnSubmitCancel.addEventListener("click", () => els.submitDialog.close());
 
   window.addEventListener("keydown", onKeyDown);
 }
@@ -244,6 +299,7 @@ async function loadPiece(config, def) {
 
   const record = { mesh, def, color: def.defaultColor };
   state.records.set(def.id, record);
+  updateSwatchActive(def.id);
 }
 
 function applyTransform(mesh, t) {
@@ -259,25 +315,64 @@ function buildPieceUI(config) {
     row.className = "piece-row";
     row.dataset.pieceId = def.id;
 
-    const colorInput = document.createElement("input");
-    colorInput.type = "color";
-    colorInput.value = def.defaultColor;
-    colorInput.addEventListener("input", (e) => {
-      const rec = state.records.get(def.id);
-      if (!rec) return;
-      rec.color = e.target.value;
-      rec.mesh.material.color.set(e.target.value);
+    const eye = document.createElement("button");
+    eye.type = "button";
+    eye.className = "piece-eye";
+    eye.title = "Show / hide this piece";
+    eye.innerHTML = EYE_SVG;
+    eye.addEventListener("click", (e) => {
+      e.stopPropagation();
+      togglePieceVisible(def.id);
     });
+
+    let colorInput = null;
+    const swatches = document.createElement("div");
+    swatches.className = "color-swatches";
+
+    if (def.colors.length) {
+      def.colors.forEach((c) => {
+        const sw = document.createElement("button");
+        sw.type = "button";
+        sw.className = "color-swatch";
+        sw.style.background = c;
+        sw.dataset.color = c;
+        sw.title = c;
+        sw.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const rec = state.records.get(def.id);
+          if (!rec) return;
+          rec.color = c;
+          rec.mesh.material.color.set(c);
+          updateSwatchActive(def.id);
+        });
+        swatches.appendChild(sw);
+      });
+      row.appendChild(swatches);
+    } else {
+      colorInput = document.createElement("input");
+      colorInput.type = "color";
+      colorInput.value = def.defaultColor;
+      colorInput.addEventListener("input", (e) => {
+        const rec = state.records.get(def.id);
+        if (!rec) return;
+        rec.color = e.target.value;
+        rec.mesh.material.color.set(e.target.value);
+      });
+      row.appendChild(colorInput);
+    }
 
     const label = document.createElement("div");
     label.className = "piece-label";
     label.textContent = def.label;
 
-    row.appendChild(colorInput);
+    row.appendChild(eye);
+    if (colorInput) row.appendChild(colorInput);
     row.appendChild(label);
 
     row.addEventListener("click", (e) => {
       if (e.target === colorInput) return;
+      const rec = state.records.get(def.id);
+      if (!rec || !rec.mesh.visible) return;
       if (state.designOn) {
         editor.select(def.id);
       }
@@ -291,6 +386,12 @@ function setDesignMode(on) {
   state.designOn = on;
   els.designPanel.classList.toggle("hidden", !on);
   editor.setEnabled(on);
+  gridVisible = on;
+  grid.visible = on;
+  els.btnGrid.classList.toggle("active", on);
+  axesVisible = on;
+  axes.visible = on;
+  els.btnAxes.classList.toggle("active", on);
   if (on) {
     controls.mouseButtons = {
       LEFT: -1,
@@ -405,6 +506,37 @@ function updatePieceRowSelection() {
   });
 }
 
+function updateSwatchActive(id) {
+  const rec = state.records.get(id);
+  const row = els.pieceList.querySelector('.piece-row[data-piece-id="' + id + '"]');
+  if (!row || !rec) return;
+  row.querySelectorAll(".color-swatch").forEach((sw) => {
+    sw.classList.toggle("active", sw.dataset.color === rec.color);
+  });
+}
+
+function togglePieceVisible(id) {
+  const rec = state.records.get(id);
+  if (!rec) return;
+  rec.mesh.visible = !rec.mesh.visible;
+  if (!rec.mesh.visible && state.selectedId === id) {
+    editor.detach();
+    state.selectedId = null;
+    updatePieceRowSelection();
+  }
+  updateEyeState(id);
+  if (!rec.mesh.visible) frameView();
+}
+
+function updateEyeState(id) {
+  const rec = state.records.get(id);
+  const row = els.pieceList.querySelector('.piece-row[data-piece-id="' + id + '"]');
+  if (!row || !rec) return;
+  row.querySelector(".piece-eye").classList.toggle("off", !rec.mesh.visible);
+  row.querySelectorAll("input[type=color], .color-swatch").forEach((el) => (el.disabled = !rec.mesh.visible));
+  row.classList.toggle("dimmed", !rec.mesh.visible);
+}
+
 function resetSelected() {
   if (!state.selectedId) return;
   const def = state.records.get(state.selectedId).def;
@@ -423,7 +555,13 @@ function resetAllTransforms() {
 }
 
 function frameView() {
-  const box = new THREE.Box3().setFromObject(state.group);
+  const box = new THREE.Box3();
+  state.group.children.forEach((child) => {
+    if (child.visible && child.geometry) box.expandByObject(child);
+  });
+  if (box.isEmpty()) {
+    box.setFromObject(state.group);
+  }
   if (box.isEmpty()) return;
   const sphere = box.getBoundingSphere(new THREE.Sphere());
   const center = sphere.center;
@@ -447,6 +585,50 @@ function frameView() {
   dirLight.shadow.camera.updateProjectionMatrix();
 
   controls.update();
+}
+
+function centerOnOrigin() {
+  const offset = camera.position.clone().sub(controls.target);
+  controls.target.set(0, 0, 0);
+  camera.position.copy(controls.target).add(offset);
+  controls.update();
+  toast("Centered on origin");
+}
+
+function toggleAxes() {
+  axesVisible = !axesVisible;
+  axes.visible = axesVisible;
+  els.btnAxes.classList.toggle("active", axesVisible);
+  toast(axesVisible ? "Axis marker on" : "Axis marker off");
+}
+
+function toggleGrid() {
+  gridVisible = !gridVisible;
+  grid.visible = gridVisible;
+  els.btnGrid.classList.toggle("active", gridVisible);
+  toast(gridVisible ? "Grid on" : "Grid off");
+}
+
+function screenshot() {
+  renderer.render(scene, camera);
+  const canvas = renderer.domElement;
+  canvas.toBlob((blob) => {
+    if (!blob) {
+      toast("Could not capture image", true);
+      return;
+    }
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+    const name = "design-" + state.current.id + "-" + stamp + ".png";
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast("Saved " + name);
+  }, "image/png");
 }
 
 function copyConfig() {
@@ -490,6 +672,137 @@ function downloadConfig() {
   toast("Downloaded " + a.download);
 }
 
+function currentColors() {
+  const colors = {};
+  [...state.records.entries()].forEach(([id, rec]) => {
+    colors[id] = rec.color;
+  });
+  return colors;
+}
+
+function designPayload(orderId, author) {
+  return buildDesignPayload({
+    orderId: orderId || "",
+    enclosure: state.current.id,
+    enclosureName: state.current.name,
+    author: author || "",
+    colors: currentColors(),
+  });
+}
+
+function downloadDesign() {
+  if (!state.current) return;
+  const name = state.current.id + "-design.json";
+  const blob = new Blob([designPayload("", "")], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast("Saved " + name);
+}
+
+function openSubmitDialog() {
+  if (!state.current) return;
+  onetimeSk = null;
+  els.submitStatus.classList.add("hidden");
+  els.submitStatus.textContent = "";
+  const extOption = els.identityMode.querySelector('option[value="extension"]');
+  if (extOption) extOption.disabled = !hasExtension();
+  const defaultMode = hasExtension() ? "extension" : "nsec";
+  els.identityMode.value = defaultMode;
+  els.orderId.value = "";
+  els.nsecInput.value = savedNsec();
+  els.nsecRemember.checked = !!savedNsec();
+  els.btnSubmitSend.disabled = false;
+  onIdentityModeChange();
+  els.submitDialog.showModal();
+  els.orderId.focus();
+}
+
+async function onIdentityModeChange() {
+  const mode = els.identityMode.value;
+  els.identityExtension.classList.toggle("hidden", mode !== "extension");
+  els.identityNsec.classList.toggle("hidden", mode !== "nsec");
+  els.identityOnetime.classList.toggle("hidden", mode !== "onetime");
+  if (mode === "extension") {
+    els.extensionPubkey.textContent = "Reading extension…";
+    try {
+      const pk = await window.nostr.getPublicKey();
+      els.extensionPubkey.textContent = "Connected: " + npubOf(pk);
+    } catch (err) {
+      els.extensionPubkey.textContent = "Could not read extension: " + err.message;
+    }
+  }
+  if (mode === "onetime") {
+    if (!onetimeSk) onetimeSk = NT.generateSecretKey();
+    els.onetimePubkey.textContent = "Your npub: " + npubOf(NT.getPublicKey(onetimeSk));
+  }
+  updateSubmitPreview();
+}
+
+function updateSubmitPreview() {
+  els.submitPreview.value = designPayload(els.orderId.value.trim(), "");
+}
+
+function submitStatus(msg, isError) {
+  els.submitStatus.textContent = msg;
+  els.submitStatus.classList.toggle("error", !!isError);
+  els.submitStatus.classList.toggle("ok", !isError);
+  els.submitStatus.classList.remove("hidden");
+}
+
+async function onSubmitSend() {
+  const orderId = els.orderId.value.trim();
+  if (!orderId) {
+    submitStatus("Enter a TakeMySats Order ID first.", true);
+    els.orderId.focus();
+    return;
+  }
+  const mode = els.identityMode.value;
+  const nsec = els.nsecInput.value.trim();
+  let identity;
+  try {
+    identity = await resolveIdentity(mode, onetimeSk, nsec);
+  } catch (err) {
+    submitStatus(err.message, true);
+    return;
+  }
+
+  if (mode === "nsec") {
+    if (els.nsecRemember.checked && nsec) saveNsec(nsec);
+    els.nsecInput.value = "";
+  }
+
+  els.btnSubmitSend.disabled = true;
+  submitStatus("Sending…");
+
+  const content = designPayload(orderId, identity.pubkey);
+  const recipient = await getRecipient();
+
+  try {
+    const res = await sendDesign({
+      recipient,
+      identity,
+      content,
+      subject: "SeedSigner enclosure design - order " + orderId,
+      onStatus: (m) => submitStatus(m),
+    });
+    if (res.ok > 0) {
+      submitStatus("Sent to " + res.ok + "/" + res.relays + " relays.\nEvent: " + res.wrapId);
+    } else {
+      submitStatus("Could not publish to any of " + res.relays + " relays.\nEvent: " + res.wrapId, true);
+    }
+  } catch (err) {
+    submitStatus("Failed to send: " + err.message, true);
+  } finally {
+    els.btnSubmitSend.disabled = false;
+  }
+}
+
 function applyImported(text) {
   let parsed;
   try {
@@ -527,9 +840,10 @@ function applyImported(text) {
 function syncColorInputs() {
   [...els.pieceList.children].forEach((row) => {
     const rec = state.records.get(row.dataset.pieceId);
-    if (rec) {
-      row.querySelector("input[type=color]").value = rec.color;
-    }
+    if (!rec) return;
+    const colorInput = row.querySelector("input[type=color]");
+    if (colorInput) colorInput.value = rec.color;
+    updateSwatchActive(row.dataset.pieceId);
   });
 }
 

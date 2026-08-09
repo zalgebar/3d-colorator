@@ -14,12 +14,17 @@
 }
 </script>
 <script type="module" src="js/app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/nostr-tools@2.24.1/lib/nostr.bundle.js"></script>
 </head>
 <body>
 <header class="topbar">
   <div class="brand">SeedSigner <span>Enclosure Designer</span></div>
   <div class="topbar-right">
-    <button id="btn-frame" class="btn">Frame view</button>
+    <button id="btn-frame" class="btn">Frame</button>
+    <button id="btn-origin" class="btn">Origin</button>
+    <button id="btn-axes" class="btn">Axis</button>
+    <button id="btn-grid" class="btn">Grid</button>
+    <button id="btn-screenshot" class="btn">PNG</button>
     <label class="toggle" data-owner-only>
       <input type="checkbox" id="design-toggle">
       <span class="toggle-track"></span>
@@ -58,6 +63,15 @@
       <p class="hint">Shortcuts: <b>G</b> move, <b>R</b> rotate, <b>S</b> scale, <b>F</b> frame, <b>Esc</b> deselect. Right-drag to orbit.</p>
     </section>
 
+    <section data-public-only>
+      <h2>Share</h2>
+      <div class="btn-row">
+        <button id="btn-download-design" class="btn">Download design</button>
+        <button id="btn-submit" class="btn primary">Submit via nostr DM</button>
+      </div>
+      <p class="hint">Save or submit your coloring as a JSON design. Submissions are sent as an encrypted NIP-17 direct message (order ID required).</p>
+    </section>
+
     <section data-owner-only>
       <h2>Config</h2>
       <div class="btn-row">
@@ -83,6 +97,52 @@
   <div class="dialog-actions">
     <button id="btn-import-apply" class="btn primary">Apply</button>
     <button id="btn-import-cancel" class="btn">Cancel</button>
+  </div>
+</dialog>
+
+<dialog id="submit-dialog">
+  <h2>Submit design via nostr DM</h2>
+
+  <div class="form-row">
+    <label for="order-id">TakeMySats Order ID</label>
+    <input id="order-id" type="text" autocomplete="off" placeholder="e.g. abc123">
+  </div>
+
+  <div class="form-row">
+    <label for="identity-mode">Send as</label>
+    <select id="identity-mode">
+      <option value="extension">Browser extension (NIP-07)</option>
+      <option value="nsec">My own key (paste nsec)</option>
+      <option value="onetime">One-time key</option>
+    </select>
+  </div>
+
+  <div id="identity-extension" class="identity-box hidden">
+    <p class="hint">Using the connected nostr extension.</p>
+    <p class="hint" id="extension-pubkey"></p>
+  </div>
+
+  <div id="identity-nsec" class="identity-box hidden">
+    <input id="nsec-input" type="password" autocomplete="off" spellcheck="false" placeholder="nsec1… or hex secret key">
+    <label class="check-row"><input type="checkbox" id="nsec-remember"> Remember this key in this browser</label>
+    <p class="hint">No keys yet? Generate your own at <a href="https://nostr.org/" target="_blank" rel="noopener">nostr.org</a> and paste the secret key here.</p>
+  </div>
+
+  <div id="identity-onetime" class="identity-box hidden">
+    <p class="hint">A fresh keypair is generated in your browser for this submission. It cannot be recovered later, so replies from the judge won't be readable by you.</p>
+    <p class="hint" id="onetime-pubkey"></p>
+  </div>
+
+  <div class="form-row">
+    <label for="submit-preview">Message</label>
+    <textarea id="submit-preview" spellcheck="false" readonly rows="6"></textarea>
+  </div>
+
+  <p id="submit-status" class="status hidden"></p>
+
+  <div class="dialog-actions">
+    <button id="btn-submit-send" class="btn primary">Send DM</button>
+    <button id="btn-submit-cancel" class="btn">Cancel</button>
   </div>
 </dialog>
 

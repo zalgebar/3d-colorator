@@ -57,6 +57,7 @@ export class DesignEditor {
     if (!this.enabled) return;
     const mesh = this.meshes.get(id);
     if (!mesh) return;
+    if (this.selectedId === id || this.tc.dragging) return;
     this.selectedId = id;
     this.tc.attach(mesh);
     if (this.onSelect) this.onSelect(id);
@@ -94,7 +95,16 @@ export class DesignEditor {
 
   handlePointerDown(e) {
     if (!this.enabled || e.button !== 0) return;
+    const hit = this.pick(e);
+    if (hit) {
+      this.select(hit);
+      return;
+    }
     if (this.hitGizmo(e)) return;
+    this.detach();
+  }
+
+  pick(e) {
     const rect = this.dom.getBoundingClientRect();
     const ndc = new THREE.Vector2(
       ((e.clientX - rect.left) / rect.width) * 2 - 1,
@@ -102,13 +112,9 @@ export class DesignEditor {
     );
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(ndc, this.camera);
-    const targets = Array.from(this.meshes.values());
+    const targets = Array.from(this.meshes.values()).filter((m) => m.visible);
     const hits = raycaster.intersectObjects(targets, false);
-    if (hits.length) {
-      this.select(hits[0].object.userData.pieceId);
-    } else {
-      this.detach();
-    }
+    return hits.length ? hits[0].object.userData.pieceId : null;
   }
 
   hitGizmo(e) {

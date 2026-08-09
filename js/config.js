@@ -18,6 +18,9 @@ export function normalizePiece(raw, fallbackId) {
       : /^#[0-9a-fA-F]{6}$/.test(def.color || "")
         ? def.color
         : "#cccccc",
+    colors: Array.isArray(def.colors)
+      ? def.colors.filter((c) => /^#[0-9a-fA-F]{6}$/.test(c))
+      : [],
   };
 }
 
@@ -61,6 +64,7 @@ export function buildExportObject(config, records) {
         scale: t.scale,
         centerOrigin: def.centerOrigin !== false,
         defaultColor: rec ? rec.color : def.defaultColor,
+        colors: def.colors,
       };
     }),
   };

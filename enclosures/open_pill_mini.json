@@ -13,7 +13,8 @@
       "position": [0, 0, 0],
       "rotation": [0, 0, 0],
       "scale": [1, 1, 1],
-      "defaultColor": "#4d4d4d"
+      "defaultColor": "#f7931a",
+      "colors": ["#f7931a", "#8D45FF", "#000000", "#ffffff", "#ff0000", "#00ff00", "#0000ff"]
     }
   ]
 }
