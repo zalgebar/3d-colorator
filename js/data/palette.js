@@ -125,17 +125,21 @@ export class Palette {
 
   // three.js material properties for a chosen color.
   //
-  // `depthWrite` stays true by default: a lone translucent part writing depth
-  // looks right, and disabling it lets a part show through itself. The caller
-  // flips it off only when translucent parts actually overlap — see
-  // syncTransparencySorting() in app.js. 03-ui-behavior.md#opacity-rendering
+  // A translucent piece must show its own far side — the internal ribs, bosses
+  // and walls you would really see through translucent filament. That needs
+  // both `depthWrite: false` (so a near surface cannot reject the ones behind
+  // it) and double-sided rendering (so interior wall faces are not culled).
+  // `side` is semantic here; app.js maps it onto the THREE constant.
+  // 03-ui-behavior.md#opacity-rendering
   toMaterial(chosen) {
     const c = this.resolve(chosen);
+    const translucent = c.opacity < 1;
     return {
       color: c.hex,
-      transparent: c.opacity < 1,
+      transparent: translucent,
       opacity: c.opacity,
-      depthWrite: true,
+      depthWrite: !translucent,
+      side: translucent ? "double" : "front",
     };
   }
 }

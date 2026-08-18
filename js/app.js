@@ -76,7 +76,6 @@ function init() {
         state.selectedId = null;
         pieceList.updateSelection(null);
       }
-      syncTransparencySorting();
       if (!visible) viewer.frameView();
     },
   });
@@ -245,7 +244,6 @@ async function setPrint(idOrPrint) {
     await Promise.all(print.pieces.map((def) => loadPiece(print, def)));
 
     pieceList.build(print, state.palette, state.records, state.designOn);
-    syncTransparencySorting();
     editor.setGroup(viewer.group);
     viewer.frameView();
     showLoading(false);
@@ -270,6 +268,7 @@ async function loadPiece(print, def) {
     transparent: m.transparent,
     opacity: m.opacity,
     depthWrite: m.depthWrite,
+    side: m.side === "double" ? THREE.DoubleSide : THREE.FrontSide,
     roughness: 0.55,
     metalness: 0.08,
     flatShading: true,
@@ -297,7 +296,6 @@ function setPieceColor(pieceId, colorId) {
   if (!rec || !state.palette.has(colorId)) return false;
   rec.color = colorId;
   applyColor(rec.mesh.material, colorId);
-  syncTransparencySorting();
   pieceList.updateSwatchActive(pieceId);
   markDirty();
   return true;
@@ -307,30 +305,16 @@ function setPieceColor(pieceId, colorId) {
 // translucent changes the shader, so `needsUpdate` matters here.
 function applyColor(material, chosen) {
   const m = state.palette.toMaterial(chosen);
+  const side = m.side === "double" ? THREE.DoubleSide : THREE.FrontSide;
   material.color.set(m.color);
   material.opacity = m.opacity;
-  if (material.transparent !== m.transparent) {
+  material.depthWrite = m.depthWrite;
+  // transparency and face culling are compiled into the shader
+  if (material.transparent !== m.transparent || material.side !== side) {
     material.transparent = m.transparent;
+    material.side = side;
     material.needsUpdate = true;
   }
-}
-
-// Translucent materials are depth-sorted back-to-front, but two overlapping
-// translucent parts still fight over the depth buffer. Writing depth is right
-// for a lone translucent part and wrong once they overlap, so pick per scene:
-// depthWrite off only when more than one translucent piece is on screen.
-// 03-ui-behavior.md#opacity-rendering
-function syncTransparencySorting() {
-  const overlapping =
-    [...state.records.values()].filter((rec) => rec.mesh.visible && rec.mesh.material.transparent)
-      .length > 1;
-  // Every material is revisited, not just the translucent ones: a piece that
-  // goes back to an opaque color must get its depth write restored.
-  state.records.forEach((rec) => {
-    const material = rec.mesh.material;
-    const write = material.transparent ? !overlapping : true;
-    if (material.depthWrite !== write) material.depthWrite = write;
-  });
 }
 
 // ---- design mode ----
@@ -532,7 +516,6 @@ function applyImportedConfig(text) {
     applyColor(rec.mesh.material, colorId);
   });
 
-  syncTransparencySorting();
   pieceList.syncActive();
   if (state.selectedId) {
     const rec = state.records.get(state.selectedId);

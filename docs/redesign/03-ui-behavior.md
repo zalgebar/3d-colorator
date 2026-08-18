@@ -40,10 +40,16 @@ handle in Phase 2 rather than retrofit:
 
 - **Shadows**: a transparent material still casts a fully opaque shadow. Either scale
   `shadowOpacity` down or accept it — decide once, consistently.
-- **Overlapping translucent parts**: back-to-front sort issues. Setting `depthWrite: false` on
-  translucent materials fixes stacking but can let a part show through itself. Trade-off:
-  prefer `depthWrite: true` for single translucent parts; only disable if two translucent
-  pieces overlap in practice.
+- **Seeing a piece's own internals**: a translucent print shows its interior ribs, bosses and
+  far wall, and the preview must too — that definition is most of why someone picks translucent
+  filament. Two things are needed together: `depthWrite: false`, so a near surface cannot
+  depth-reject the surfaces behind it, and `side: DoubleSide`, so interior wall faces are not
+  back-face culled. (An earlier draft preferred `depthWrite: true` for a lone translucent part
+  to stop it "showing through itself" — that is exactly the wrong call here, and it flattened
+  parts into featureless shells.)
+- **Overlapping translucent parts**: with `depthWrite: false` these layer correctly by the
+  renderer's back-to-front object sort. Per-triangle order within a mesh is still arbitrary, so
+  expect minor blending imprecision on concave geometry — acceptable for a color preview.
 - **Swatches**: draw translucent colors over a **checkerboard** in every UI surface (palette
   rows, chips, dropdowns) so translucency is legible at a glance.
 
