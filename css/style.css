@@ -126,13 +126,13 @@ html, body {
   word-break: break-word;
 }
 
-.enclosure-list {
+.print-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.enclosure-card {
+.print-card {
   padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -142,9 +142,9 @@ html, body {
   font-weight: 600;
 }
 
-.enclosure-card:hover { border-color: #3d4a58; }
+.print-card:hover { border-color: #3d4a58; }
 
-.enclosure-card.active {
+.print-card.active {
   border-color: var(--accent);
   background: rgba(79, 140, 255, 0.12);
 }

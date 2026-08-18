@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "colors": [
+    {
+      "id": "ss_orange",
+      "name": "SeedSigner Orange",
+      "hex": "#f75403",
+      "opacity": 1
+    },
+    {
+      "id": "purple",
+      "name": "Purple",
+      "hex": "#9a57bd",
+      "opacity": 1
+    },
+    {
+      "id": "red",
+      "name": "Red",
+      "hex": "#eb3a3a",
+      "opacity": 1
+    },
+    {
+      "id": "yellow",
+      "name": "Yellow",
+      "hex": "#ffd00b",
+      "opacity": 1
+    },
+    {
+      "id": "green",
+      "name": "Green",
+      "hex": "#00ae42",
+      "opacity": 1
+    },
+    {
+      "id": "blue",
+      "name": "Blue",
+      "hex": "#002e96",
+      "opacity": 1
+    },
+    {
+      "id": "black",
+      "name": "Matte Black",
+      "hex": "#000000",
+      "opacity": 1
+    },
+    {
+      "id": "grey",
+      "name": "Grey",
+      "hex": "#adb1b2",
+      "opacity": 1
+    },
+    {
+      "id": "white",
+      "name": "White",
+      "hex": "#ffffff",
+      "opacity": 1
+    },
+    {
+      "id": "pink",
+      "name": "Pink",
+      "hex": "#f55a74",
+      "opacity": 1
+    },
+    {
+      "id": "brown",
+      "name": "Brown",
+      "hex": "#6f5034",
+      "opacity": 1
+    }
+  ]
+}

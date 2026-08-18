@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "prints": [
+    {
+      "id": "open_pill_mini_w_coverplate",
+      "name": "Open Pill Mini w/ Coverplate",
+      "categories": [
+        "seedsigner"
+      ]
+    },
+    {
+      "id": "open_pill_mini",
+      "name": "Open Pill Mini",
+      "categories": [
+        "seedsigner"
+      ]
+    }
+  ]
+}

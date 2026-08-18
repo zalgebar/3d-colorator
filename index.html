@@ -36,9 +36,9 @@
 <main class="layout">
   <aside class="sidebar">
     <section>
-      <h2>Enclosure</h2>
-      <div id="enclosure-list" class="enclosure-list"></div>
-      <p id="enclosure-desc" class="desc"></p>
+      <h2>Print</h2>
+      <div id="print-list" class="print-list"></div>
+      <p id="print-desc" class="desc"></p>
     </section>
 
     <section>
@@ -85,27 +85,27 @@
         <button id="btn-download" class="btn">Download JSON</button>
         <button id="btn-import" class="btn">Import JSON</button>
       </div>
-      <p class="hint">Design mode places the pieces. Drag swatches to reorder them; right-click a swatch to remove it. Copy or download the JSON and save it back into the enclosure file to make the placement permanent.</p>
+      <p class="hint">Design mode places the pieces. Copy or download the JSON and save it back into the print file to make the placement permanent.</p>
     </section>
 
     <section id="about-section">
       <h2>About</h2>
       <p class="about-version"><strong>Version: </strong><span id="about-version">1.0.0</span><br/></p>
-      <p id="about-text" class="about-text"><strong>Contact: </strong>admin@zalgebar.com</p>
-      <p id="about-text" class="about-text"><strong>Donate: </strong>zalgebar@rizful.com</p>
+      <p class="about-text"><strong>Contact: </strong>admin@zalgebar.com</p>
+      <p class="about-text"><strong>Donate: </strong>zalgebar@rizful.com</p>
     </section>
   </aside>
 
   <div class="viewport-wrap">
     <canvas id="viewport"></canvas>
-    <div id="loading" class="overlay hidden"><div class="spinner"></div><span>Loading enclosure…</span></div>
+    <div id="loading" class="overlay hidden"><div class="spinner"></div><span>Loading print…</span></div>
     <div id="toast" class="toast hidden"></div>
   </div>
 </main>
 
 <dialog id="import-dialog">
   <h2>Import config JSON</h2>
-  <p class="hint">Paste an exported enclosure config. Transforms and colors will be applied to the current view.</p>
+  <p class="hint">Paste an exported print config. Transforms and colors will be applied to the current view.</p>
   <textarea id="import-text" spellcheck="false" placeholder='{ "pieces": [ … ] }'></textarea>
   <div class="dialog-actions">
     <button id="btn-import-apply" class="btn primary">Apply</button>
@@ -115,7 +115,7 @@
 
 <dialog id="design-import-dialog">
   <h2>Import design</h2>
-  <p class="hint">Choose a design file you downloaded, or paste its JSON. Colors will be applied to the current enclosure.</p>
+  <p class="hint">Choose a design file you downloaded, or paste its JSON. Colors will be applied to the current print.</p>
   <input type="file" id="design-file" accept=".json,application/json">
   <textarea id="design-import-text" spellcheck="false" placeholder='{ "type": "enclosure-design", "colors": { … } }'></textarea>
   <div class="dialog-actions">

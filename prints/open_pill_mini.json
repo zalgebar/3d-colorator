@@ -1,0 +1,37 @@
+{
+  "id": "open_pill_mini",
+  "name": "Open Pill Mini",
+  "description": "Single-piece open enclosure (main chassis only).",
+  "categories": [
+    "seedsigner"
+  ],
+  "axes": {
+    "up": "z"
+  },
+  "camera": null,
+  "links": [],
+  "pieces": [
+    {
+      "id": "main_chassis",
+      "label": "Main Chassis",
+      "file": "stls/open_pill_mini/Main_Chassis.stl",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        -1.5707963267948966,
+        0,
+        -1.5707963267948966
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "centerOrigin": true,
+      "defaultColor": "ss_orange"
+    }
+  ]
+}

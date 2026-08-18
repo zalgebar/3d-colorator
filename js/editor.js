@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { TransformControls } from "three/addons/controls/TransformControls.js";
-import { transformToArray } from "./config.js";
+import { transformToArray } from "./data/prints.js";
 
 export class DesignEditor {
   constructor({ scene, camera, dom, controls, onSelect, onTransform }) {
