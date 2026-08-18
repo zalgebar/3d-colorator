@@ -103,9 +103,22 @@ Each row: `⠿` drag handle · swatch · name · `%` (translucent only) · `★`
 | Add the rest | "Add remaining (N)" appends every color the piece does not offer yet, **staying in Restrict** and keeping the curated order in front. Distinct from the *Offer all* tab, which discards the explicit list. |
 | Minimum | Cannot remove the last remaining color. |
 
+**Save / Cancel.** Edits apply live so the viewport previews them, so the dialog snapshots the
+piece's offering, default and current color on open. **Save** keeps them; **Cancel** and
+**Escape** restore the snapshot. Switching tabs stashes the curated subset rather than
+discarding it, so *Restrict → Offer all → Restrict* returns the same list.
+
+Note the dismissal paths are wired explicitly rather than through the dialog's `close` event —
+that event does not fire reliably in every target environment, so relying on it silently lost
+the revert.
+
 The action area is rendered in both modes — the two buttons under *Restrict*, an explanatory
 hint under *Offer all* — so switching tabs does not resize the dialog. Rows also reserve the
 remove-button slot when it is not shown, keeping row height identical across modes.
+
+Editor dialogs are **top-anchored**, not vertically centred, and the offered-colors list keeps a
+floor height. Removing colors still shrinks the dialog, but only downward — so repeatedly
+clicking `✕` does not walk the button out from under the pointer.
 
 Popup menus (the add-color list, and the visitor's dropdown) are **fixed-positioned and
 parented to the open dialog**. Absolute positioning let a scrolling ancestor — the sidebar, or

@@ -46,6 +46,7 @@ const els = {};
   "palette-dialog", "btn-open-palette", "btn-palette-close", "palette-count",
   "palette-count-inline", "palette-list", "btn-add-color",
   "piece-colors-dialog", "piece-colors-title", "piece-colors-body", "btn-piece-colors-close",
+  "btn-piece-colors-cancel",
   "sidebar-resizer",
   "btn-copy-palette", "btn-download-palette", "color-delete-dialog", "color-delete-msg",
   "color-delete-uses", "btn-color-delete-cancel", "btn-color-delete-confirm",
@@ -80,6 +81,7 @@ function init() {
     title: els.pieceColorsTitle,
     body: els.pieceColorsBody,
     close: els.btnPieceColorsClose,
+    cancel: els.btnPieceColorsCancel,
   }, {
     onSelect: (id) => editor.select(id),
     onColorChange: setPieceColor,

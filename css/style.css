@@ -809,6 +809,7 @@ dialog input[type="file"] {
   border: 1px solid var(--border);
   border-radius: 7px;
   background: var(--bg);
+  min-height: 190px;
   max-height: 46vh;
   overflow-y: auto;
 }
@@ -969,6 +970,25 @@ body.resizing { cursor: col-resize; user-select: none; }
 
 /* ---------- dialogs that host editors ---------- */
 dialog.wide-dialog { width: min(680px, 94vw); }
+
+/* Editor dialogs grow and shrink as rows are added or removed. Anchoring the
+   top means the content below moves, but the dialog itself never jumps — so
+   clicking ✕ repeatedly does not walk the button out from under the cursor. */
+dialog.wide-dialog,
+#piece-colors-dialog {
+  margin-block-start: 7vh;
+  margin-block-end: auto;
+}
+
+/* Disabled controls have to read as disabled. */
+.btn:disabled,
+.add-color:disabled {
+  opacity: 0.42;
+  cursor: default;
+}
+
+.btn:disabled:hover,
+.add-color:disabled:hover { border-color: var(--border); color: var(--text); }
 
 dialog h2 .count {
   font-family: Consolas, monospace;

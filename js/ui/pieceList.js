@@ -21,11 +21,23 @@ const EYE_SVG =
 export class PieceList {
   constructor(root, dialogEls, { onSelect, onColorChange, onVisibilityChange, onOfferingChange }) {
     this.root = root;
-    this.dialogEls = dialogEls; // { dialog, title, body, close }
+    this.dialogEls = dialogEls; // { dialog, title, body, close, cancel }
     this.openPieceId = null;
+    // Edits apply live so the viewport previews them, so the dialog keeps a
+    // snapshot to restore if it is dismissed without saving.
+    this.pieceSnapshot = null;
+    this.stashedSubset = null;
     if (dialogEls) {
-      dialogEls.close.addEventListener("click", () => dialogEls.dialog.close());
-      dialogEls.dialog.addEventListener("close", () => (this.openPieceId = null));
+      dialogEls.close.addEventListener("click", () => this.closePieceDialog(true));
+      dialogEls.cancel.addEventListener("click", () => this.closePieceDialog(false));
+      // Escape reverts, like Cancel. Note this deliberately does not use the
+      // dialog's own `close` event: it does not fire reliably everywhere, so
+      // every dismissal path is routed through closePieceDialog() instead.
+      dialogEls.dialog.addEventListener("keydown", (e) => {
+        if (e.key !== "Escape") return;
+        e.preventDefault();
+        this.closePieceDialog(false);
+      });
     }
     this.onSelect = onSelect;
     this.onColorChange = onColorChange;
@@ -123,11 +135,42 @@ export class PieceList {
     btn.title = "Edit which colors " + def.label + " offers";
   }
 
+  closePieceDialog(save) {
+    if (!save) this.revertPiece();
+    this.openPieceId = null;
+    this.pieceSnapshot = null;
+    this.stashedSubset = null;
+    this.dialogEls.dialog.close();
+  }
+
   openPieceColors(def) {
     if (!this.dialogEls) return;
+    // Safety net for any dismissal that bypassed closePieceDialog().
+    if (this.pieceSnapshot && this.openPieceId) this.revertPiece();
+    const rec = this.records.get(def.id);
     this.openPieceId = def.id;
+    this.pieceSnapshot = {
+      palette: def.palette.slice(),
+      defaultColor: def.defaultColor,
+      color: rec ? rec.color : null,
+    };
+    // Remembered across tab switches so flipping to Offer all and back does not
+    // discard a curated subset.
+    this.stashedSubset = def.palette.length ? def.palette.slice() : null;
     this.renderPieceDialog(def.id);
     this.dialogEls.dialog.showModal();
+  }
+
+  revertPiece() {
+    const id = this.openPieceId;
+    const snap = this.pieceSnapshot;
+    if (!id || !snap) return;
+    const def = this.print && this.print.pieces.find((p) => p.id === id);
+    if (!def) return;
+    def.palette = snap.palette.slice();
+    def.defaultColor = snap.defaultColor;
+    if (snap.color && this.onColorChange) this.onColorChange(id, snap.color);
+    this.onOfferingChange(id);
   }
 
   renderPieceDialog(pieceId) {
@@ -223,11 +266,14 @@ export class PieceList {
     bRestrict.textContent = "Restrict";
     if (restricted) bRestrict.className = "active";
     bAll.addEventListener("click", () => {
+      if (def.palette.length) this.stashedSubset = def.palette.slice();
       def.palette = [];
       this.onOfferingChange(def.id);
     });
     bRestrict.addEventListener("click", () => {
-      if (!def.palette.length) def.palette = this.palette.ids.slice();
+      if (!def.palette.length) {
+        def.palette = this.stashedSubset ? this.stashedSubset.slice() : this.palette.ids.slice();
+      }
       this.onOfferingChange(def.id);
     });
     seg.append(bAll, bRestrict);
@@ -285,6 +331,7 @@ export class PieceList {
       addAll.title = "Append every palette color this piece does not offer yet, keeping the current order";
       addAll.addEventListener("click", () => {
         def.palette = def.palette.concat(remaining);
+        this.stashedSubset = def.palette.slice();
         this.onOfferingChange(def.id);
         toast("Added " + remaining.length + " color" + (remaining.length === 1 ? "" : "s"));
       });
@@ -356,6 +403,7 @@ export class PieceList {
           return;
         }
         def.palette = def.palette.filter((c) => c !== colorId);
+        this.stashedSubset = def.palette.slice();
         this.onOfferingChange(def.id);
       });
       row.appendChild(rm);
@@ -392,6 +440,7 @@ export class PieceList {
       mi.addEventListener("click", () => {
         closeMenus();
         def.palette.push(colorId);
+        this.stashedSubset = def.palette.slice();
         this.onOfferingChange(def.id);
       });
       menu.appendChild(mi);
@@ -439,6 +488,7 @@ export class PieceList {
         if (!dragging) return;
         row.classList.remove("dragging");
         def.palette = [...list.querySelectorAll(".subset-row")].map((r) => r.dataset.color);
+        this.stashedSubset = def.palette.slice();
         this.onOfferingChange(def.id);
       };
 

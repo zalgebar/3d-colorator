@@ -43,7 +43,8 @@ export function openFloatingMenu(anchor, build) {
   place(menu, anchor);
 
   const dismiss = (e) => {
-    if (e && e.type === "pointerdown" && menu.contains(e.target)) return;
+    // scrolling or clicking *within* the menu is use, not dismissal
+    if (e && e.target instanceof Node && menu.contains(e.target)) return;
     closeMenus();
     window.removeEventListener("scroll", dismiss, true);
     window.removeEventListener("resize", dismiss);
