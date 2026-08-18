@@ -95,32 +95,38 @@ export class PieceList {
   // ---- owner: launcher + dialog ----
 
   buildColorsButton(def) {
-    const rec = this.records.get(def.id);
-    const color = this.palette.resolve(rec ? rec.color : def.defaultColor);
-    const offered = this.palette.offeredIds(def).length;
-
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "piece-colors-btn";
     const sw = document.createElement("span");
     sw.className = "dd-sw";
-    paintSwatch(sw, color);
     const nm = document.createElement("span");
     nm.className = "nm";
-    nm.textContent = color.name;
     const count = document.createElement("span");
     count.className = "count";
-    count.textContent = def.palette.length ? offered + " offered" : "all";
     const caret = document.createElement("span");
     caret.className = "caret";
     caret.textContent = "▸";
     btn.append(sw, nm, count, caret);
-    btn.title = "Edit which colors " + def.label + " offers";
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       this.openPieceColors(def);
     });
+    this.paintColorsButton(btn, def);
     return btn;
+  }
+
+  // Kept separate from construction: the default color changes without the row
+  // being rebuilt, and the launcher is what shows it in the sidebar.
+  paintColorsButton(btn, def) {
+    const rec = this.records.get(def.id);
+    const color = this.palette.resolve(rec ? rec.color : def.defaultColor);
+    paintSwatch(btn.querySelector(".dd-sw"), color);
+    btn.querySelector(".nm").textContent = color.name;
+    btn.querySelector(".count").textContent = def.palette.length
+      ? this.palette.offeredIds(def).length + " offered"
+      : "all";
+    btn.title = "Edit which colors " + def.label + " offers";
   }
 
   openPieceColors(def) {
@@ -315,7 +321,6 @@ export class PieceList {
       if (e.target.closest(".rm")) return;
       e.stopPropagation();
       if (this.onColorChange) this.onColorChange(def.id, colorId);
-      this.refreshChips(def.id);
     });
 
     if (restricted) {
@@ -426,24 +431,29 @@ export class PieceList {
     return this.root.querySelector('.piece-row[data-piece-id="' + id + '"]');
   }
 
+  // The chips are in the dialog, not the sidebar row.
   refreshChips(id) {
-    const row = this.rowFor(id);
     const rec = this.records.get(id);
-    if (!row || !rec) return;
-    row.querySelectorAll(".chip").forEach((chip) => {
+    if (!rec || !this.dialogEls || this.openPieceId !== id) return;
+    this.dialogEls.body.querySelectorAll(".chip").forEach((chip) => {
       const isDefault = chip.dataset.color === rec.color;
       chip.classList.toggle("is-default", isDefault);
       chip.querySelector(".star").textContent = isDefault ? "★" : "☆";
     });
   }
 
-  // Repaint a piece's control after its color changed elsewhere.
+  // Repaint every surface showing a piece's color: the visitor dropdown, the
+  // owner's row launcher, and the chips in the open dialog.
   syncPiece(id) {
+    const def = this.print && this.print.pieces.find((p) => p.id === id);
     const row = this.rowFor(id);
-    if (!row) return;
-    const dd = row.querySelector(".dd");
-    if (dd && dd.paint) dd.paint();
-    else this.refreshChips(id);
+    if (row && def) {
+      const dd = row.querySelector(".dd");
+      if (dd && dd.paint) dd.paint();
+      const btn = row.querySelector(".piece-colors-btn");
+      if (btn) this.paintColorsButton(btn, def);
+    }
+    this.refreshChips(id);
   }
 
   syncActive() {
