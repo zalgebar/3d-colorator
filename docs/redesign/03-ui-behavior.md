@@ -47,9 +47,21 @@ handle in Phase 2 rather than retrofit:
   back-face culled. (An earlier draft preferred `depthWrite: true` for a lone translucent part
   to stop it "showing through itself" — that is exactly the wrong call here, and it flattened
   parts into featureless shells.)
-- **Overlapping translucent parts**: with `depthWrite: false` these layer correctly by the
-  renderer's back-to-front object sort. Per-triangle order within a mesh is still arbitrary, so
-  expect minor blending imprecision on concave geometry — acceptable for a color preview.
+- **Draw order**: alpha blending is order-dependent, so with `depthWrite: false` the picture
+  depends entirely on what is painted first. Two orderings have to be pinned down:
+  - *Within a piece*: draw a **back-face pass then a front-face pass** (two meshes sharing one
+    geometry, the back one a child so it inherits the transform). This puts a shell's far wall
+    under its near wall, which arbitrary triangle order does not.
+  - *Between pieces*: **paint in authored piece order**, via `renderOrder`, not by camera
+    distance. three.js sorts transparent objects by centroid distance, which flips as you orbit
+    nested pieces and makes the whole model visibly snap to a different apparent opacity at the
+    crossover angle. A fixed order is an approximation — a piece may composite over one that is
+    physically nearer — but a stable picture beats a correct-then-suddenly-different one. To
+    tune which piece reads as "on top", reorder `pieces` in the print file.
+
+  Fully correct per-pixel translucency needs order-independent transparency (depth peeling or
+  weighted-blended OIT). That is a custom-shader/render-target project and is deliberately not
+  attempted here.
 - **Swatches**: draw translucent colors over a **checkerboard** in every UI surface (palette
   rows, chips, dropdowns) so translucency is legible at a glance.
 

@@ -126,10 +126,13 @@ export class Palette {
   // three.js material properties for a chosen color.
   //
   // A translucent piece must show its own far side — the internal ribs, bosses
-  // and walls you would really see through translucent filament. That needs
-  // both `depthWrite: false` (so a near surface cannot reject the ones behind
-  // it) and double-sided rendering (so interior wall faces are not culled).
-  // `side` is semantic here; app.js maps it onto the THREE constant.
+  // and walls you would really see through translucent filament — so it cannot
+  // write depth, or a near surface would reject everything behind it.
+  //
+  // Alpha blending is order-dependent, and triangles within a mesh are drawn in
+  // buffer order, so the far wall is not reliably composited under the near one.
+  // `twoPass` tells app.js to draw the piece as a back-face pass followed by a
+  // front-face pass, which puts those surfaces in the right order.
   // 03-ui-behavior.md#opacity-rendering
   toMaterial(chosen) {
     const c = this.resolve(chosen);
@@ -139,7 +142,7 @@ export class Palette {
       transparent: translucent,
       opacity: c.opacity,
       depthWrite: !translucent,
-      side: translucent ? "double" : "front",
+      twoPass: translucent,
     };
   }
 }

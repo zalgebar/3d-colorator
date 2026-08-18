@@ -241,7 +241,7 @@ async function setPrint(idOrPrint) {
     markActivePrint(print.id);
     els.printDesc.textContent = print.description;
 
-    await Promise.all(print.pieces.map((def) => loadPiece(print, def)));
+    await Promise.all(print.pieces.map((def, i) => loadPiece(print, def, i)));
 
     pieceList.build(print, state.palette, state.records, state.designOn);
     editor.setGroup(viewer.group);
@@ -254,7 +254,7 @@ async function setPrint(idOrPrint) {
   }
 }
 
-async function loadPiece(print, def) {
+async function loadPiece(print, def, index) {
   if (!def.file) throw new Error("Piece " + def.label + " has no STL file");
   const geometry = await state.geometry.get(def.file, {
     up: print.axes.up,
@@ -268,7 +268,7 @@ async function loadPiece(print, def) {
     transparent: m.transparent,
     opacity: m.opacity,
     depthWrite: m.depthWrite,
-    side: m.side === "double" ? THREE.DoubleSide : THREE.FrontSide,
+    side: THREE.FrontSide,
     roughness: 0.55,
     metalness: 0.08,
     flatShading: true,
@@ -288,14 +288,38 @@ async function loadPiece(print, def) {
   mesh.scale.set(def.scale[0], def.scale[1], def.scale[2]);
   viewer.group.add(mesh);
 
-  state.records.set(def.id, { mesh, def, color: colorId });
+  // Back-face pass. A child of the piece, so it inherits every transform for
+  // free, and carries no pieceId so the editor's raycaster ignores it. Drawn
+  // before the front faces via renderOrder; only shown while translucent.
+  const backMaterial = material.clone();
+  backMaterial.side = THREE.BackSide;
+  const backMesh = new THREE.Mesh(geometry, backMaterial);
+  backMesh.castShadow = false; // the front pass already casts one
+  backMesh.receiveShadow = true;
+  backMesh.visible = m.twoPass;
+  mesh.add(backMesh);
+
+  // Deterministic paint order for the translucent pass.
+  //
+  // three.js sorts transparent objects by centroid distance, which flips as you
+  // orbit nested pieces — and because alpha blending is order-dependent, the
+  // whole model visibly snaps to a different apparent opacity at the crossover
+  // angle. Ordering by the piece's position in the print file instead keeps the
+  // blend identical from every angle. It is an approximation (a piece may
+  // composite over one that is physically nearer), but a stable picture beats a
+  // correct-then-suddenly-different one. Pieces render back-pass then
+  // front-pass, in authored order. 03-ui-behavior.md#opacity-rendering
+  backMesh.renderOrder = index * 2;
+  mesh.renderOrder = index * 2 + 1;
+
+  state.records.set(def.id, { mesh, backMesh, def, color: colorId });
 }
 
 function setPieceColor(pieceId, colorId) {
   const rec = state.records.get(pieceId);
   if (!rec || !state.palette.has(colorId)) return false;
   rec.color = colorId;
-  applyColor(rec.mesh.material, colorId);
+  applyColor(rec, colorId);
   pieceList.updateSwatchActive(pieceId);
   markDirty();
   return true;
@@ -303,18 +327,19 @@ function setPieceColor(pieceId, colorId) {
 
 // Writes a chosen color onto a live material. Switching between opaque and
 // translucent changes the shader, so `needsUpdate` matters here.
-function applyColor(material, chosen) {
+function applyColor(rec, chosen) {
   const m = state.palette.toMaterial(chosen);
-  const side = m.side === "double" ? THREE.DoubleSide : THREE.FrontSide;
-  material.color.set(m.color);
-  material.opacity = m.opacity;
-  material.depthWrite = m.depthWrite;
-  // transparency and face culling are compiled into the shader
-  if (material.transparent !== m.transparent || material.side !== side) {
-    material.transparent = m.transparent;
-    material.side = side;
-    material.needsUpdate = true;
-  }
+  [rec.mesh.material, rec.backMesh.material].forEach((material) => {
+    material.color.set(m.color);
+    material.opacity = m.opacity;
+    material.depthWrite = m.depthWrite;
+    // transparency is compiled into the shader
+    if (material.transparent !== m.transparent) {
+      material.transparent = m.transparent;
+      material.needsUpdate = true;
+    }
+  });
+  rec.backMesh.visible = m.twoPass;
 }
 
 // ---- design mode ----
@@ -513,7 +538,7 @@ function applyImportedConfig(text) {
     rec.mesh.scale.set(p.scale[0], p.scale[1], p.scale[2]);
     const colorId = state.palette.has(p.defaultColor) ? p.defaultColor : rec.color;
     rec.color = colorId;
-    applyColor(rec.mesh.material, colorId);
+    applyColor(rec, colorId);
   });
 
   pieceList.syncActive();

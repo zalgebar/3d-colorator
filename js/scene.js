@@ -79,8 +79,11 @@ export class Viewer {
   clearGroup() {
     while (this.group.children.length) {
       const child = this.group.children[0];
-      // geometry is owned by the print's GeometryCache, so only materials here
-      if (child.material) child.material.dispose();
+      // geometry is owned by the print's GeometryCache, so only materials here.
+      // Traverse: a translucent piece carries a back-face pass as a child.
+      child.traverse((o) => {
+        if (o.material) o.material.dispose();
+      });
       this.group.remove(child);
     }
   }
