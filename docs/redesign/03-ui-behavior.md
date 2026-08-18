@@ -31,7 +31,7 @@ Each row: `⠿` drag handle · swatch · name field · hex field (+ picker) · o
 | Delete (unused) | Immediate. |
 | Delete (in use) | **Guard dialog** naming the affected pieces. On confirm: remove from the palette *and* every piece subset; any piece defaulting to it falls back to its first remaining offered color; summarize what changed. |
 | Live propagation | Editing hex/opacity updates every piece referencing that id, immediately. |
-| id visibility | Shown subtly (mono, on hover) — it is what share links contain. |
+| id | An always-visible field. See *Slug ids* below. |
 
 Export: **Copy JSON** / **Download JSON** for `palette.json`, matching the existing
 print-export flow.
@@ -132,6 +132,24 @@ a drag silently switch the mode, which read as the UI changing a setting the use
 touched. Switch to *Restrict* to order colors.
 
 ---
+
+## Slug ids
+
+Colors, link groups and pieces are referenced by a slug **id** — by piece subsets, by group
+colors, and by share links. Ids are lower-case letters, numbers and underscores, unique within
+their kind, and shown as an **always-visible field** in the palette editor and the group header.
+
+| Rule | Behavior |
+| --- | --- |
+| Created | Slugged from the name, deduped (`smoke`, `smoke_2`). |
+| Renaming the name | **Never** moves an existing id — that is what makes renaming a filament safe. |
+| New group, still unnamed | Its id tracks the name as you type, so naming a group gives it a readable id instead of a placeholder. |
+| Fixed | Editing the id by hand, or loading one from a file, fixes it — it stops tracking the name. Carried in memory as `idFixed`, stripped on export. |
+| Editing an id | Validated for charset and uniqueness, then **every reference is rewritten together**: piece subsets, piece defaults, group colors and live records. |
+| Cost | Changing an id breaks any share link already using it — the link reconciles to the piece default instead. The toast says so. |
+
+Why not auto-derive ids from names continuously: renaming would then silently break links, which
+is exactly what referencing by id exists to prevent.
 
 ## Viewport navigation
 

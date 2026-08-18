@@ -17,6 +17,7 @@ import { PaletteEditor } from "./ui/paletteEditor.js";
 import { DesignIO } from "./ui/submit.js";
 import { initFeedback, toast, showLoading } from "./ui/toast.js";
 import { initSidebarResizer } from "./ui/resizer.js";
+import { slugId, validateId } from "./data/ids.js";
 
 const isOwner = new URLSearchParams(window.location.search).has("design");
 
@@ -104,12 +105,30 @@ function init() {
       addTo: addToGroup,
       unlink: unlinkGroup,
       removeMember: removeFromGroup,
+      // Returns the group's id, which may have followed the new name.
       rename: (groupId, label) => {
         const g = state.print.links.find((x) => x.id === groupId);
-        if (g) {
-          g.label = label;
-          markDirty();
+        if (!g) return groupId;
+        g.label = label;
+        // A new group's id tracks its name, so naming it gives it a readable
+        // id. Editing the id by hand — or loading one from a file — fixes it.
+        if (!g.idFixed) {
+          const taken = new Set(state.print.links.filter((x) => x !== g).map((x) => x.id));
+          g.id = slugId(label, taken, "group");
         }
+        markDirty();
+        return g.id;
+      },
+      renameId: (groupId, next) => {
+        const g = state.print.links.find((x) => x.id === groupId);
+        if (!g) return null;
+        const taken = new Set(state.print.links.filter((x) => x !== g).map((x) => x.id));
+        const problem = validateId(next, taken);
+        if (problem) return problem;
+        g.id = next;
+        g.idFixed = true;
+        markDirty();
+        return null;
       },
       setCollapsed: (groupId, collapsed) => {
         const g = state.print.links.find((x) => x.id === groupId);
@@ -151,6 +170,7 @@ function init() {
       );
     },
     removeColor: (colorId) => removeColorEverywhere(colorId),
+    renameColorId,
   });
 
   pieceList.wireLinkBar();
@@ -461,7 +481,11 @@ function createGroup(ids) {
   pruneGroups();
   const first = state.records.get(ids[0]);
   const group = {
-    id: "link_" + Date.now().toString(36),
+    // Readable rather than a timestamp: a collapsed group's id is the key in a
+    // share link. Groups are created unnamed, so this starts as a placeholder
+    // and tracks the name until either is edited by hand.
+    id: slugId("", new Set(state.print.links.map((g) => g.id)), "group"),
+    idFixed: false, // tracks the label until the id is edited by hand
     label: "",
     members: ids.slice(),
     collapsed: true,
@@ -525,6 +549,36 @@ function repairPieceDefault(pieceId) {
   rec.color = next;
   rec.def.defaultColor = next;
   applyColor(rec, next);
+  return true;
+}
+
+// An id is referenced from several places, so renaming one has to rewrite all of
+// them together: the catalog entry, every piece subset, every piece default,
+// every group color, and the live per-piece records.
+function renameColorId(from, to) {
+  const palette = state.palette;
+  const color = palette.byId(from);
+  if (!color || palette.has(to)) return false;
+
+  color.id = to;
+  palette._byId.delete(from);
+  palette._byId.set(to, color);
+
+  if (state.print) {
+    state.print.pieces.forEach((def) => {
+      def.palette = def.palette.map((c) => (c === from ? to : c));
+      if (def.defaultColor === from) def.defaultColor = to;
+    });
+    state.print.links.forEach((g) => {
+      if (g.color === from) g.color = to;
+    });
+  }
+  state.records.forEach((rec) => {
+    if (rec.color === from) rec.color = to;
+  });
+
+  rebuildPieceList();
+  markDirty();
   return true;
 }
 

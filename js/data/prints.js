@@ -38,6 +38,10 @@ export function normalizeLink(raw, i) {
     members: Array.isArray(l.members) ? l.members.map(String) : [],
     collapsed: l.collapsed !== false,
     color: l.color ? String(l.color) : null,
+    // An id read from a file is deliberate — never re-derive it from the label.
+    // Newly created groups set this false so their id can track the name until
+    // it is set by hand. Stripped on export.
+    idFixed: true,
   };
 }
 
@@ -90,7 +94,14 @@ export function buildExportObject(print, records) {
     categories: print.categories,
     axes: print.axes,
     camera: print.camera,
-    links: print.links,
+    // strip UI-only bookkeeping such as idFixed
+    links: print.links.map((l) => ({
+      id: l.id,
+      label: l.label,
+      members: l.members,
+      collapsed: l.collapsed,
+      color: l.color,
+    })),
     pieces: print.pieces.map((def) => {
       const rec = records.get(def.id);
       const t = rec ? transformToArray(rec.mesh) : def;

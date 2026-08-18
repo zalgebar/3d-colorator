@@ -647,7 +647,6 @@ dialog input[type="file"] {
 .pal-row .pal-name { order: 2; flex: 1; min-width: 80px; }
 .pal-row .hex-field { order: 3; flex: 0 0 108px; }
 .pal-row .op-cell { order: 4; }
-.pal-row .pal-id { order: 5; }
 .pal-row .icon-btn { order: 6; }
 
 .pal-row.dragging { opacity: 0.5; }
@@ -738,22 +737,6 @@ dialog input[type="file"] {
 
 .op-cell input:focus { outline: none; border-color: var(--accent); }
 .op-cell .pct { font-family: Consolas, monospace; font-size: 11px; color: var(--text-dim); }
-
-.pal-id {
-  flex: 0 0 auto;
-  width: 74px;
-  text-align: right;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-family: Consolas, monospace;
-  font-size: 10px;
-  color: var(--text-dim);
-  white-space: nowrap;
-  opacity: 0;
-  transition: opacity 0.12s;
-}
-
-.pal-row:hover .pal-id { opacity: 1; }
 
 .icon-btn {
   display: flex;
@@ -1171,3 +1154,38 @@ dialog h2 .count {
 
 .unlink-btn:hover { color: var(--danger); border-color: var(--danger); }
 .unlink-btn svg { width: 14px; height: 14px; }
+
+/* ---------- id fields ---------- */
+.id-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  padding: 0 5px 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+}
+
+.id-field:focus-within { border-color: var(--accent); }
+
+.id-field .id-label {
+  font-family: Consolas, monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: lowercase;
+}
+
+.id-field input {
+  width: 92px;
+  padding: 5px 2px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-family: Consolas, monospace;
+  font-size: 11px;
+}
+
+.id-field input:focus { outline: none; color: var(--text); }
+.pal-row .id-field { order: 5; }
+.group-head .id-field input { width: 78px; }

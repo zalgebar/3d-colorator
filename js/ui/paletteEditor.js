@@ -6,16 +6,9 @@
 
 import { paintSwatch } from "./swatch.js";
 import { toast } from "./toast.js";
+import { slugId, validateId } from "../data/ids.js";
 
 const HEX_RE = /^[0-9a-fA-F]{6}$/;
-
-export function slugId(name, taken) {
-  const base = String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "") || "color";
-  if (!taken.has(base)) return base;
-  let n = 2;
-  while (taken.has(base + "_" + n)) n++;
-  return base + "_" + n;
-}
 
 export class PaletteEditor {
   constructor(els, ctx) {
@@ -154,11 +147,38 @@ export class PaletteEditor {
     del.addEventListener("click", () => this.requestDelete(color));
     main.appendChild(del);
 
-    // the id is what share links carry, so make it discoverable but quiet
-    const id = document.createElement("span");
-    id.className = "pal-id";
-    id.textContent = color.id;
-    meta.appendChild(id);
+    // The id is what pieces and share links reference, so it is shown as a real
+    // field rather than hidden — and changing it rewrites every reference.
+    const idWrap = document.createElement("span");
+    idWrap.className = "id-field";
+    const idLabel = document.createElement("span");
+    idLabel.className = "id-label";
+    idLabel.textContent = "id";
+    const idIn = document.createElement("input");
+    idIn.type = "text";
+    idIn.value = color.id;
+    idIn.spellcheck = false;
+    idIn.title = "Referenced by pieces and share links. Changing it breaks links already shared.";
+    idIn.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") idIn.blur();
+    });
+    idIn.addEventListener("blur", () => {
+      const next = idIn.value.trim();
+      if (next === color.id) return;
+      const taken = new Set(this.ctx.getPalette().ids.filter((x) => x !== color.id));
+      const problem = validateId(next, taken);
+      if (problem) {
+        idIn.value = color.id;
+        toast(problem, true);
+        return;
+      }
+      const from = color.id;
+      this.ctx.renameColorId(from, next);
+      this.render(); // row keys and any stale lookups follow the new id
+      toast("id " + from + " → " + next + " · any link using the old id will fall back");
+    });
+    idWrap.append(idLabel, idIn);
+    meta.appendChild(idWrap);
 
     return row;
   }
@@ -166,7 +186,7 @@ export class PaletteEditor {
   addColor() {
     const palette = this.ctx.getPalette();
     const taken = new Set(palette.ids);
-    const color = { id: slugId("New Color", taken), name: "New Color", hex: "#4f8cff", opacity: 1 };
+    const color = { id: slugId("New Color", taken, "color"), name: "New Color", hex: "#4f8cff", opacity: 1 };
     palette.colors.push(color);
     palette._byId.set(color.id, color);
     this.render();

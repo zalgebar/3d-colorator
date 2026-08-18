@@ -136,8 +136,50 @@ export class PieceList {
     name.value = group.label;
     name.placeholder = "Name this group";
     name.spellcheck = false;
-    name.addEventListener("input", () => this.links.rename(group.id, name.value));
     head.appendChild(name);
+
+    // Shown as a field because a collapsed group's id is the key in a share
+    // link. It follows the name only while it is still an untouched placeholder.
+    const idWrap = document.createElement("span");
+    idWrap.className = "id-field";
+    const idLabel = document.createElement("span");
+    idLabel.className = "id-label";
+    idLabel.textContent = "id";
+    const idIn = document.createElement("input");
+    idIn.type = "text";
+    idIn.value = group.id;
+    idIn.spellcheck = false;
+    idIn.title = "Used as the share-link key when this group is collapsed";
+    idIn.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") idIn.blur();
+    });
+    idIn.addEventListener("blur", () => {
+      const next = idIn.value.trim();
+      if (next === group.id) return;
+      const problem = this.links.renameId(group.id, next);
+      if (problem) {
+        idIn.value = group.id;
+        toast(problem, true);
+        return;
+      }
+      group.id = next;
+      const box = idIn.closest(".group");
+      if (box) box.dataset.groupId = next;
+    });
+    idWrap.append(idLabel, idIn);
+    head.appendChild(idWrap);
+
+    name.addEventListener("input", () => {
+      // `group` is the live state object, so rename() mutates it in place —
+      // the previous id has to be captured before the call to notice a change.
+      const before = group.id;
+      const settled = this.links.rename(before, name.value);
+      if (settled && settled !== before) {
+        idIn.value = settled;
+        const box = idIn.closest(".group");
+        if (box) box.dataset.groupId = settled;
+      }
+    });
 
     const seg = document.createElement("span");
     seg.className = "seg";
