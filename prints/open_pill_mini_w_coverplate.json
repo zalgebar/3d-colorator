@@ -9,7 +9,18 @@
     "up": "z"
   },
   "camera": null,
-  "links": [],
+  "links": [
+    {
+      "id": "link_msz4uzxe",
+      "label": "",
+      "members": [
+        "thumbstick",
+        "buttons"
+      ],
+      "collapsed": false,
+      "color": "white"
+    }
+  ],
   "pieces": [
     {
       "id": "main_chassis",
