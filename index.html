@@ -140,6 +140,43 @@
   </div>
 </dialog>
 
+<dialog id="piece-dialog">
+  <h2>Piece — <span id="piece-dialog-title"></span></h2>
+  <div class="form-row">
+    <label for="piece-id-input">Id <span class="hint-inline">referenced by link groups and share links</span></label>
+    <input id="piece-id-input" type="text" spellcheck="false" autocomplete="off">
+  </div>
+  <div class="stl-row">
+    <span class="stl-chip" id="piece-stl"></span>
+    <span class="inst-badge hidden" id="piece-instances"></span>
+  </div>
+  <p class="hint" id="piece-dup-hint"></p>
+  <div class="btn-row">
+    <button id="btn-duplicate" class="btn" type="button">⧉ Duplicate</button>
+    <button id="btn-duplicate-many" class="btn" type="button">Duplicate &amp; Link…</button>
+  </div>
+  <div class="btn-row">
+    <button id="btn-delete-piece" class="btn danger" type="button">Remove this instance</button>
+  </div>
+  <div class="dialog-actions">
+    <button id="btn-piece-dialog-close" class="btn primary" type="button">Done</button>
+  </div>
+</dialog>
+
+<dialog id="duplicate-dialog">
+  <h2>Duplicate <span id="duplicate-title"></span></h2>
+  <p class="hint">Adds independent copies of this STL. Each copy can be placed and colored on its own.</p>
+  <div class="form-row inline">
+    <label for="duplicate-count">Number of copies</label>
+    <input id="duplicate-count" type="number" min="1" max="24" value="3">
+  </div>
+  <label class="check-row"><input type="checkbox" id="duplicate-link" checked> Link all copies (and the original) so they always share one color</label>
+  <div class="dialog-actions">
+    <button id="btn-duplicate-cancel" class="btn" type="button">Cancel</button>
+    <button id="btn-duplicate-create" class="btn primary" type="button">Create copies</button>
+  </div>
+</dialog>
+
 <dialog id="color-delete-dialog">
   <h2>Delete this color?</h2>
   <p class="hint" id="color-delete-msg"></p>

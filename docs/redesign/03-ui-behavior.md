@@ -227,13 +227,21 @@ substitute a placeholder like "Untitled group".
 
 Mockup: [`duplication-mockup.html`](mockups/duplication-mockup.html)
 
+Duplication lives in a **per-piece dialog**, opened from a compact launcher on the piece row —
+`⋯` normally, `⧉` once the piece has copies. The row itself already carries selection, linking
+and visibility, so these controls get their own surface rather than crowding it.
+
 | Control | Behavior |
 | --- | --- |
-| `⧉` | Duplicate once — new id, `"Label N"`, offset transform, fully independent. |
-| Layers icon | **Duplicate & Link** dialog: integer count (1–24) + "Link all copies (and the original) so they always share one color" (default on). |
-| `⧉ n/N` badge | Derived by grouping pieces on `file`. Shown only when N > 1. |
+| Id | Editable slug, same rules as colors and groups — see *Slug ids*. Renaming rewrites link membership and the live record. |
 | STL chip | Mono filename, full path on hover — makes the shared source obvious. |
-| Trash | Removes an instance. **Disabled when it is the only instance of that STL**, with a tooltip pointing at the print/repo instead. |
+| `⧉ n of N` badge | Derived by grouping pieces on `file`. Shown only when N > 1. |
+| **Duplicate** | One copy — new id, `"Label N"`, stepped along X by the STL's own width, fully independent. Copies do **not** inherit the original's link group. |
+| **Duplicate & Link…** | Dialog: integer count (1–24) + "Link all copies (and the original) so they always share one color" (default on). When checked it forms a real link group by reusing the Phase 4 mechanism. |
+| **Remove this instance** | **Disabled when it is the only instance of that STL**, with a tooltip pointing at the print/repo instead. |
+
+The offset steps from how many instances already exist, not from a loop counter, so duplicating
+one at a time marches copies along rather than restacking them at the same spot.
 
 When "link" is checked the copies plus the original form a normal link group — the same
 mechanism as [Piece linking](#piece-linking), not a parallel one.

@@ -1189,3 +1189,61 @@ dialog h2 .count {
 .id-field input:focus { outline: none; color: var(--text); }
 .pal-row .id-field { order: 5; }
 .group-head .id-field input { width: 78px; }
+
+/* ---------- STL instances ---------- */
+.stl-row { display: flex; align-items: center; gap: 8px; margin: 10px 0 4px; }
+
+.stl-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-dim);
+  font-family: Consolas, monospace;
+  font-size: 11px;
+}
+
+.stl-chip .path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.inst-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  border: 1px solid var(--accent-dim);
+  border-radius: 6px;
+  background: rgba(79, 140, 255, 0.12);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.piece-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.piece-more:hover { color: var(--text); border-color: #3d4a58; }
+.piece-more.has-copies { color: var(--accent); border-color: var(--accent-dim); }
+
+.hint-inline { font-weight: 400; color: var(--text-dim); font-size: 11px; }
+.form-row.inline { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.form-row.inline input[type="number"] { width: 84px; text-align: right; }

@@ -49,6 +49,10 @@ const els = {};
   "piece-colors-dialog", "piece-colors-title", "piece-colors-body", "btn-piece-colors-close",
   "btn-piece-colors-cancel",
   "sidebar-resizer", "link-bar", "link-count", "link-add-slot", "btn-new-group",
+  "piece-dialog", "piece-dialog-title", "piece-id-input", "piece-stl", "piece-instances",
+  "piece-dup-hint", "btn-duplicate", "btn-duplicate-many", "btn-delete-piece",
+  "btn-piece-dialog-close", "duplicate-dialog", "duplicate-title", "duplicate-count",
+  "duplicate-link", "btn-duplicate-cancel", "btn-duplicate-create",
   "btn-copy-palette", "btn-download-palette", "color-delete-dialog", "color-delete-msg",
   "color-delete-uses", "btn-color-delete-cancel", "btn-color-delete-confirm",
 ].forEach((id) => {
@@ -97,6 +101,30 @@ function init() {
       applyGroupColors();
       rebuildPieceList();
       markDirty();
+    },
+    pieces: {
+      instanceIndex: (pieceId) => {
+        const def = state.print.pieces.find((p) => p.id === pieceId);
+        if (!def) return { index: 0, total: 0, file: "" };
+        const siblings = instancesOf(def.file);
+        return { index: siblings.indexOf(def) + 1, total: siblings.length, file: def.file };
+      },
+      canDelete: canDeletePiece,
+      remove: deletePiece,
+      renameId: renamePieceId,
+      duplicate: async (pieceId, count, link) => {
+        const created = duplicatePiece(pieceId, count);
+        if (!created.length) return null;
+        await syncPieces();
+        if (link) {
+          createGroup([pieceId, ...created.map((c) => c.id)]);
+        } else {
+          applyGroupColors();
+          rebuildPieceList();
+        }
+        markDirty();
+        return created;
+      },
     },
     links: {
       groupOf,
@@ -174,6 +202,24 @@ function init() {
   });
 
   pieceList.wireLinkBar();
+  pieceList.wirePieceInfo({
+    dialog: els.pieceDialog,
+    title: els.pieceDialogTitle,
+    idInput: els.pieceIdInput,
+    stl: els.pieceStl,
+    instances: els.pieceInstances,
+    dupHint: els.pieceDupHint,
+    duplicate: els.btnDuplicate,
+    duplicateMany: els.btnDuplicateMany,
+    remove: els.btnDeletePiece,
+    close: els.btnPieceDialogClose,
+    dupDialog: els.duplicateDialog,
+    dupTitle: els.duplicateTitle,
+    dupCount: els.duplicateCount,
+    dupLink: els.duplicateLink,
+    dupCancel: els.btnDuplicateCancel,
+    dupCreate: els.btnDuplicateCreate,
+  });
 
   designIO = new DesignIO(els, {
     getPrint: () => state.print,
@@ -415,6 +461,141 @@ async function loadPiece(print, def, index) {
   mesh.renderOrder = index * 2 + 1;
 
   state.records.set(def.id, { mesh, backMesh, def, color: colorId });
+}
+
+// ---- STL instances ----
+//
+// A duplicate is just another piece pointing at the same `file` — there is no
+// instanceOf field — so "instances" are derived by grouping on that path.
+// 01-data-model.md#duplicated-stls-d10
+
+function instancesOf(file) {
+  if (!state.print) return [];
+  return state.print.pieces.filter((p) => p.file === file);
+}
+
+function pieceIds() {
+  return new Set(state.print.pieces.map((p) => p.id));
+}
+
+// Places the copy beside the original rather than inside it, using the STL's
+// own width so the offset suits the part.
+function offsetFor(def, step) {
+  const rec = state.records.get(def.id);
+  const box = rec && rec.mesh.geometry && rec.mesh.geometry.boundingBox;
+  const width = box ? Math.max(box.max.x - box.min.x, 1) : 10;
+  return [def.position[0] + width * 1.15 * step, def.position[1], def.position[2]];
+}
+
+// Copies are fully independent: own id, label, transform, offering and color.
+// They deliberately do not inherit the original's link group — Duplicate & Link
+// forms one explicitly.
+function duplicatePiece(pieceId, count = 1) {
+  const def = state.print.pieces.find((p) => p.id === pieceId);
+  if (!def) return [];
+  const rec = state.records.get(pieceId);
+  const created = [];
+
+  for (let i = 0; i < count; i++) {
+    const taken = pieceIds();
+    const base = def.label.replace(/\s+\d+$/, "");
+    // Step from how many instances already exist, not the loop counter, so
+    // duplicating one at a time keeps stepping along instead of restacking.
+    const step = instancesOf(def.file).length;
+    const label = base + " " + (step + 1);
+    const copy = {
+      ...def,
+      id: slugId(label, taken, "piece"),
+      label,
+      palette: def.palette.slice(),
+      position: offsetFor(def, step),
+      rotation: def.rotation.slice(),
+      scale: def.scale.slice(),
+      defaultColor: rec ? rec.color : def.defaultColor,
+    };
+    // keep instances of one STL adjacent in the list
+    let at = -1;
+    state.print.pieces.forEach((p, k) => {
+      if (p.file === def.file) at = k;
+    });
+    state.print.pieces.splice(at + 1, 0, copy);
+    created.push(copy);
+  }
+  return created;
+}
+
+// Builds meshes for any pieces that do not have one yet, and re-stamps the
+// translucent paint order, which is positional and shifts when pieces are
+// inserted or removed. The geometry cache means new instances of an STL already
+// in the scene cost no fetch and no parse.
+async function syncPieces() {
+  const print = state.print;
+  await Promise.all(
+    print.pieces.filter((def) => !state.records.has(def.id)).map((def) => loadPiece(print, def, 0))
+  );
+  print.pieces.forEach((def, i) => {
+    const rec = state.records.get(def.id);
+    if (!rec) return;
+    rec.backMesh.renderOrder = i * 2;
+    rec.mesh.renderOrder = i * 2 + 1;
+  });
+}
+
+// The last instance of an STL cannot be removed: if a print does not need a
+// part, the STL should leave the print rather than the piece list.
+function canDeletePiece(pieceId) {
+  const def = state.print && state.print.pieces.find((p) => p.id === pieceId);
+  return !!def && instancesOf(def.file).length > 1;
+}
+
+function deletePiece(pieceId) {
+  if (!canDeletePiece(pieceId)) return false;
+  const i = state.print.pieces.findIndex((p) => p.id === pieceId);
+  state.print.pieces.splice(i, 1);
+
+  const rec = state.records.get(pieceId);
+  if (rec) {
+    rec.mesh.traverse((o) => {
+      if (o.material) o.material.dispose();
+    });
+    viewer.group.remove(rec.mesh);
+    state.records.delete(pieceId);
+  }
+  if (state.selectedId === pieceId) {
+    editor.detach();
+    state.selectedId = null;
+  }
+  detachFromGroups([pieceId]);
+  pruneGroups();
+  applyGroupColors();
+  rebuildPieceList();
+  viewer.frameView();
+  markDirty();
+  return true;
+}
+
+// A piece id is referenced by link membership and by the live record map.
+function renamePieceId(from, to) {
+  const def = state.print.pieces.find((p) => p.id === from);
+  if (!def || pieceIds().has(to)) return "That id is already taken";
+  const problem = validateId(to, new Set([...pieceIds()].filter((x) => x !== from)));
+  if (problem) return problem;
+
+  def.id = to;
+  const rec = state.records.get(from);
+  if (rec) {
+    state.records.delete(from);
+    state.records.set(to, rec);
+    rec.mesh.userData.pieceId = to;
+  }
+  state.print.links.forEach((g) => {
+    g.members = g.members.map((m) => (m === from ? to : m));
+  });
+  if (state.selectedId === from) state.selectedId = to;
+  editor.setGroup(viewer.group);
+  rebuildPieceList();
+  markDirty();
+  return null;
 }
 
 // ---- link groups ----

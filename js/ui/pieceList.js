@@ -28,9 +28,11 @@ const EYE_SVG =
   "</svg>";
 
 export class PieceList {
-  constructor(root, dialogEls, { onSelect, onColorChange, onVisibilityChange, onOfferingChange, links, linkBarEls }) {
+  constructor(root, dialogEls, { onSelect, onColorChange, onVisibilityChange, onOfferingChange, links, pieces, linkBarEls }) {
     this.root = root;
     this.links = links;               // group mutations, owned by app.js
+    this.pieceApi = pieces;           // duplicate / delete / rename, owned by app.js
+    this.pieceInfoId = null;
     this.linkBarEls = linkBarEls;     // { bar, count, addSlot, newGroup }
     this.selected = new Set();
     this.expandedGroups = new Set();
@@ -406,6 +408,23 @@ export class PieceList {
       top.appendChild(un);
     }
 
+    if (this.designOn && this.pieceApi) {
+      const inst = this.pieceApi.instanceIndex(def.id);
+      const more = document.createElement("button");
+      more.type = "button";
+      more.className = "piece-more" + (inst.total > 1 ? " has-copies" : "");
+      more.textContent = inst.total > 1 ? "⧉" : "⋯";
+      more.title =
+        inst.total > 1
+          ? "Instance " + inst.index + " of " + inst.total + " — id, duplicate, remove"
+          : "Piece id, duplicate, remove";
+      more.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.openPieceInfo(def);
+      });
+      top.appendChild(more);
+    }
+
     const eye = document.createElement("button");
     eye.type = "button";
     eye.className = "piece-eye";
@@ -777,6 +796,110 @@ export class PieceList {
     });
   }
 
+
+  // ---- piece dialog: id, STL, duplication ----
+
+  wirePieceInfo(els) {
+    this.pieceEls = els;
+    if (!els) return;
+    els.close.addEventListener("click", () => els.dialog.close());
+
+    els.idInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") els.idInput.blur();
+    });
+    els.idInput.addEventListener("blur", () => {
+      const from = this.pieceInfoId;
+      const next = els.idInput.value.trim();
+      if (!from || next === from) return;
+      const problem = this.pieceApi.renameId(from, next);
+      if (problem) {
+        els.idInput.value = from;
+        toast(problem, true);
+        return;
+      }
+      this.pieceInfoId = next;
+      toast("id " + from + " → " + next);
+    });
+
+    els.duplicate.addEventListener("click", async () => {
+      const created = await this.pieceApi.duplicate(this.pieceInfoId, 1, false);
+      if (created) {
+        toast("Added " + created[0].label);
+        this.renderPieceInfo();
+      }
+    });
+
+    els.duplicateMany.addEventListener("click", () => {
+      els.dupCount.value = 3;
+      els.dupLink.checked = true;
+      els.dupTitle.textContent = this.pieceLabel(this.pieceInfoId);
+      els.dupDialog.showModal();
+    });
+    els.dupCancel.addEventListener("click", () => els.dupDialog.close());
+    els.dupCreate.addEventListener("click", async () => {
+      let n = parseInt(els.dupCount.value, 10);
+      if (isNaN(n) || n < 1) n = 1;
+      n = Math.min(n, 24);
+      const link = els.dupLink.checked;
+      els.dupDialog.close();
+      const created = await this.pieceApi.duplicate(this.pieceInfoId, n, link);
+      if (created) {
+        toast("Added " + n + (link ? " linked" : "") + " cop" + (n === 1 ? "y" : "ies"));
+        this.renderPieceInfo();
+      }
+    });
+
+    els.remove.addEventListener("click", () => {
+      const id = this.pieceInfoId;
+      const label = this.pieceLabel(id);
+      if (!this.pieceApi.remove(id)) return;
+      els.dialog.close();
+      toast("Removed " + label);
+    });
+  }
+
+  pieceLabel(id) {
+    const def = this.print && this.print.pieces.find((p) => p.id === id);
+    return def ? def.label : "";
+  }
+
+  openPieceInfo(def) {
+    if (!this.pieceEls) return;
+    this.pieceInfoId = def.id;
+    this.renderPieceInfo();
+    this.pieceEls.dialog.showModal();
+  }
+
+  renderPieceInfo() {
+    const els = this.pieceEls;
+    const id = this.pieceInfoId;
+    const def = this.print && this.print.pieces.find((p) => p.id === id);
+    if (!els || !def) return;
+
+    els.title.textContent = def.label;
+    els.idInput.value = def.id;
+
+    const inst = this.pieceApi.instanceIndex(def.id);
+    const file = inst.file.split("/").pop();
+    els.stl.innerHTML = "";
+    const path = document.createElement("span");
+    path.className = "path";
+    path.textContent = file;
+    els.stl.appendChild(path);
+    els.stl.title = inst.file;
+
+    els.instances.classList.toggle("hidden", inst.total < 2);
+    els.instances.textContent = "⧉ " + inst.index + " of " + inst.total;
+
+    const sole = !this.pieceApi.canDelete(def.id);
+    els.remove.disabled = sole;
+    els.remove.title = sole
+      ? "This is the only instance of " + file + " — remove the STL from the print instead"
+      : "Remove this instance";
+    els.dupHint.textContent = sole
+      ? "Duplicating adds another instance of " + file + ", placed beside this one."
+      : file + " is used by " + inst.total + " pieces. Each is placed and colored on its own.";
+  }
 
   // ---- link bar ----
 
