@@ -168,11 +168,16 @@ Every piece — standalone or linked — uses the same two-line row:
 
 ```
 [checkbox]  Piece Name                    [unlink] [👁]
-[ full-width color dropdown             ▾ ]
+[ color control                         ▾ ]
 ```
 
-The unlink button appears only on linked pieces. There is **no per-row group-name badge** — the
-group name lives on the group header only.
+The second line is the visitor's swatch dropdown, or the owner's colors launcher. The unlink
+button appears only on linked pieces, and the checkbox only for the owner. There is **no
+per-row group-name badge** — the group name lives on the group header only.
+
+A group's color is limited to the colors **every member offers** (the intersection of their
+subsets), since the group can only show a color all its pieces can be. If the subsets have
+nothing in common the first member's offering is used and a warning is logged.
 
 ### Owner controls
 

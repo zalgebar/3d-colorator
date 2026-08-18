@@ -47,7 +47,7 @@ const els = {};
   "palette-count-inline", "palette-list", "btn-add-color",
   "piece-colors-dialog", "piece-colors-title", "piece-colors-body", "btn-piece-colors-close",
   "btn-piece-colors-cancel",
-  "sidebar-resizer",
+  "sidebar-resizer", "link-bar", "link-count", "link-add-slot", "btn-new-group",
   "btn-copy-palette", "btn-download-palette", "color-delete-dialog", "color-delete-msg",
   "color-delete-uses", "btn-color-delete-cancel", "btn-color-delete-confirm",
 ].forEach((id) => {
@@ -83,12 +83,41 @@ function init() {
     close: els.btnPieceColorsClose,
     cancel: els.btnPieceColorsCancel,
   }, {
+    linkBarEls: {
+      bar: els.linkBar,
+      count: els.linkCount,
+      addSlot: els.linkAddSlot,
+      newGroup: els.btnNewGroup,
+    },
     onSelect: (id) => editor.select(id),
     onColorChange: setPieceColor,
     onOfferingChange: (pieceId) => {
       repairPieceDefault(pieceId);
+      applyGroupColors();
       rebuildPieceList();
       markDirty();
+    },
+    links: {
+      groupOf,
+      offeredIdsFor: groupOfferedIds,
+      create: createGroup,
+      addTo: addToGroup,
+      unlink: unlinkGroup,
+      removeMember: removeFromGroup,
+      rename: (groupId, label) => {
+        const g = state.print.links.find((x) => x.id === groupId);
+        if (g) {
+          g.label = label;
+          markDirty();
+        }
+      },
+      setCollapsed: (groupId, collapsed) => {
+        const g = state.print.links.find((x) => x.id === groupId);
+        if (!g) return;
+        g.collapsed = collapsed;
+        rebuildPieceList();
+        markDirty();
+      },
     },
     onVisibilityChange: (id, visible) => {
       if (!visible && state.selectedId === id) {
@@ -123,6 +152,8 @@ function init() {
     },
     removeColor: (colorId) => removeColorEverywhere(colorId),
   });
+
+  pieceList.wireLinkBar();
 
   designIO = new DesignIO(els, {
     getPrint: () => state.print,
@@ -293,6 +324,7 @@ async function setPrint(idOrPrint) {
 
     await Promise.all(print.pieces.map((def, i) => loadPiece(print, def, i)));
 
+    applyGroupColors();
     pieceList.build(print, state.palette, state.records, state.designOn);
     editor.setGroup(viewer.group);
     viewer.frameView();
@@ -365,6 +397,117 @@ async function loadPiece(print, def, index) {
   state.records.set(def.id, { mesh, backMesh, def, color: colorId });
 }
 
+// ---- link groups ----
+
+function groupOf(pieceId) {
+  if (!state.print) return null;
+  return state.print.links.find((l) => l.members.includes(pieceId)) || null;
+}
+
+function groupMembers(group) {
+  return group.members.map((id) => state.print.pieces.find((p) => p.id === id)).filter(Boolean);
+}
+
+// Which colors a group can take: only those every member offers.
+function groupOfferedIds(group) {
+  return state.palette.sharedOfferedIds(groupMembers(group));
+}
+
+// Groups are color-only, so a group's color is simply written onto every member.
+function setGroupColor(group, colorId) {
+  group.color = colorId;
+  group.members.forEach((id) => {
+    const rec = state.records.get(id);
+    if (!rec) return;
+    rec.color = colorId;
+    if (state.designOn) rec.def.defaultColor = colorId;
+    applyColor(rec, colorId);
+  });
+}
+
+// Called after a print loads and whenever membership changes: settle each group
+// on a color all its members can actually show.
+function applyGroupColors() {
+  if (!state.print) return;
+  state.print.links.forEach((group) => {
+    const offered = groupOfferedIds(group);
+    const first = state.records.get(group.members[0]);
+    const wanted = group.color || (first && first.color);
+    setGroupColor(group, offered.includes(wanted) ? wanted : offered[0]);
+  });
+}
+
+// A group needs two members to mean anything; one left is just a piece again.
+// Returns the ids of any groups that dissolved.
+function pruneGroups() {
+  const dissolved = [];
+  state.print.links = state.print.links.filter((g) => {
+    if (g.members.length >= 2) return true;
+    dissolved.push(g.id);
+    return false;
+  });
+  return dissolved;
+}
+
+function detachFromGroups(ids) {
+  state.print.links.forEach((g) => {
+    g.members = g.members.filter((m) => !ids.includes(m));
+  });
+}
+
+function createGroup(ids) {
+  if (!state.print || ids.length < 2) return null;
+  detachFromGroups(ids);
+  pruneGroups();
+  const first = state.records.get(ids[0]);
+  const group = {
+    id: "link_" + Date.now().toString(36),
+    label: "",
+    members: ids.slice(),
+    collapsed: true,
+    color: first ? first.color : null,
+  };
+  state.print.links.push(group);
+  applyGroupColors();
+  rebuildPieceList();
+  markDirty();
+  return group;
+}
+
+function addToGroup(groupId, ids) {
+  const group = state.print.links.find((g) => g.id === groupId);
+  if (!group) return;
+  state.print.links.forEach((g) => {
+    if (g !== group) g.members = g.members.filter((m) => !ids.includes(m));
+  });
+  ids.forEach((id) => {
+    if (!group.members.includes(id)) group.members.push(id);
+  });
+  pruneGroups();
+  applyGroupColors();
+  rebuildPieceList();
+  markDirty();
+}
+
+// Freed pieces keep the color they were showing.
+function unlinkGroup(groupId) {
+  const i = state.print.links.findIndex((g) => g.id === groupId);
+  if (i < 0) return;
+  state.print.links.splice(i, 1);
+  rebuildPieceList();
+  markDirty();
+}
+
+function removeFromGroup(groupId, pieceId) {
+  const group = state.print.links.find((g) => g.id === groupId);
+  if (!group) return;
+  group.members = group.members.filter((m) => m !== pieceId);
+  pruneGroups();
+  applyGroupColors();
+  rebuildPieceList();
+  markDirty();
+}
+
 function rebuildPieceList() {
   if (!state.print) return;
   pieceList.build(state.print, state.palette, state.records, state.designOn);
@@ -411,11 +554,20 @@ function removeColorEverywhere(colorId) {
 function setPieceColor(pieceId, colorId) {
   const rec = state.records.get(pieceId);
   if (!rec || !state.palette.has(colorId)) return false;
-  rec.color = colorId;
-  // In design mode the choice *is* the piece's default, and exports as such.
-  if (state.designOn) rec.def.defaultColor = colorId;
-  applyColor(rec, colorId);
-  pieceList.syncPiece(pieceId);
+
+  // Linked pieces always share one color, so a pick on any member sets the
+  // group's color and writes through to the rest.
+  const group = groupOf(pieceId);
+  if (group) {
+    setGroupColor(group, colorId);
+    group.members.forEach((id) => pieceList.syncPiece(id));
+  } else {
+    rec.color = colorId;
+    // In design mode the choice *is* the piece's default, and exports as such.
+    if (state.designOn) rec.def.defaultColor = colorId;
+    applyColor(rec, colorId);
+    pieceList.syncPiece(pieceId);
+  }
   markDirty();
   return true;
 }

@@ -98,6 +98,22 @@ export class Palette {
     return subset.length ? subset : this.ids;
   }
 
+  // Colors every one of these pieces can be — a link group can only show a
+  // color all of its members offer. Falls back to the first member's offering
+  // if the subsets have nothing in common, so a group is never left with none.
+  sharedOfferedIds(pieces) {
+    if (!pieces.length) return [];
+    const shared = pieces
+      .slice(1)
+      .reduce(
+        (acc, piece) => acc.filter((id) => this.offeredIds(piece).includes(id)),
+        this.offeredIds(pieces[0])
+      );
+    if (shared.length) return shared;
+    console.warn("[palette] linked pieces share no offered color; using the first member's");
+    return this.offeredIds(pieces[0]);
+  }
+
   // A piece's starting color, repaired if it points outside its own offering.
   defaultColorOf(piece) {
     const offered = this.offeredIds(piece);

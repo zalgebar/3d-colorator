@@ -12,6 +12,15 @@ import { openFloatingMenu, closeMenus } from "./menu.js";
 
 export { closeMenus };
 
+const CHAIN_SVG =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+  '<path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07l-1.4 1.41"/>' +
+  '<path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07l1.4-1.41"/></svg>';
+
+const UNLINK_SVG =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+  '<path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 0 1 3.4 8.6"/><line x1="3" y1="3" x2="21" y2="21"/></svg>';
+
 const EYE_SVG =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
   '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>' +
@@ -19,8 +28,12 @@ const EYE_SVG =
   "</svg>";
 
 export class PieceList {
-  constructor(root, dialogEls, { onSelect, onColorChange, onVisibilityChange, onOfferingChange }) {
+  constructor(root, dialogEls, { onSelect, onColorChange, onVisibilityChange, onOfferingChange, links, linkBarEls }) {
     this.root = root;
+    this.links = links;               // group mutations, owned by app.js
+    this.linkBarEls = linkBarEls;     // { bar, count, addSlot, newGroup }
+    this.selected = new Set();
+    this.expandedGroups = new Set();
     this.dialogEls = dialogEls; // { dialog, title, body, close, cancel }
     this.openPieceId = null;
     // Edits apply live so the viewport previews them, so the dialog keeps a
@@ -58,44 +71,185 @@ export class PieceList {
     closeMenus();
     this.root.innerHTML = "";
 
+    const rendered = new Set();
     print.pieces.forEach((def) => {
-      const row = document.createElement("div");
-      row.className = "piece-row";
-      row.dataset.pieceId = def.id;
-
-      const top = document.createElement("div");
-      top.className = "piece-row-top";
-      const label = document.createElement("div");
-      label.className = "piece-label";
-      label.textContent = def.label;
-      const eye = document.createElement("button");
-      eye.type = "button";
-      eye.className = "piece-eye";
-      eye.title = "Show / hide this piece";
-      eye.innerHTML = EYE_SVG;
-      eye.addEventListener("click", (e) => {
-        e.stopPropagation();
-        this.toggleVisible(def.id);
-      });
-      top.append(label, eye);
-      row.appendChild(top);
-
-      if (designOn) row.appendChild(this.buildColorsButton(def));
-      else row.appendChild(this.buildDropdown(def));
-
-      row.addEventListener("click", (e) => {
-        if (e.target.closest("button, .subset-list, .dd, input")) return;
-        const rec = this.records.get(def.id);
-        if (!rec || !rec.mesh.visible) return;
-        if (this.designOn && this.onSelect) this.onSelect(def.id);
-      });
-
-      this.root.appendChild(row);
+      if (rendered.has(def.id)) return;
+      const group = this.links && this.links.groupOf(def.id);
+      if (group) {
+        group.members.forEach((id) => rendered.add(id));
+        this.root.appendChild(this.buildGroup(group));
+      } else {
+        rendered.add(def.id);
+        this.root.appendChild(this.buildPieceRow(def));
+      }
     });
+    this.syncLinkBar();
 
     [...records.keys()].forEach((id) => this.updateEye(id));
     this.updateSelection(this.selectedId);
     if (this.openPieceId) this.renderPieceDialog(this.openPieceId);
+  }
+
+  // ---- link groups ----
+
+  buildGroup(group) {
+    const box = document.createElement("div");
+    box.className = "group";
+    box.dataset.groupId = group.id;
+    box.appendChild(this.designOn ? this.groupHeadOwner(group) : this.groupHeadVisitor(group));
+
+    const body = document.createElement("div");
+    body.className = "group-body";
+
+    if (group.collapsed) {
+      if (this.designOn) {
+        body.appendChild(this.groupSummary(group));
+        body.appendChild(this.groupExpander(group, body));
+      } else {
+        // the group name is already on the header line, so the visitor just
+        // needs the one shared color control
+        body.appendChild(this.buildGroupDropdown(group));
+      }
+    } else {
+      group.members.forEach((id) => {
+        const def = this.print.pieces.find((p) => p.id === id);
+        if (def) body.appendChild(this.buildPieceRow(def, { inGroup: group }));
+      });
+    }
+
+    box.appendChild(body);
+    return box;
+  }
+
+  groupHeadOwner(group) {
+    const head = document.createElement("div");
+    head.className = "group-head";
+
+    const chain = document.createElement("span");
+    chain.className = "chain";
+    chain.innerHTML = CHAIN_SVG;
+    head.appendChild(chain);
+
+    const name = document.createElement("input");
+    name.type = "text";
+    name.className = "group-name";
+    name.value = group.label;
+    name.placeholder = "Name this group";
+    name.spellcheck = false;
+    name.addEventListener("input", () => this.links.rename(group.id, name.value));
+    head.appendChild(name);
+
+    const seg = document.createElement("span");
+    seg.className = "seg";
+    const bCol = document.createElement("button");
+    bCol.type = "button";
+    bCol.textContent = "Collapsed";
+    if (group.collapsed) bCol.className = "active";
+    const bSep = document.createElement("button");
+    bSep.type = "button";
+    bSep.textContent = "Separate";
+    if (!group.collapsed) bSep.className = "active";
+    bCol.addEventListener("click", () => this.links.setCollapsed(group.id, true));
+    bSep.addEventListener("click", () => this.links.setCollapsed(group.id, false));
+    seg.append(bCol, bSep);
+    head.appendChild(seg);
+
+    const un = document.createElement("button");
+    un.type = "button";
+    un.className = "unlink-btn";
+    un.innerHTML = UNLINK_SVG;
+    un.title = "Dissolve this group";
+    un.addEventListener("click", () => this.links.unlink(group.id));
+    head.appendChild(un);
+
+    return head;
+  }
+
+  groupHeadVisitor(group) {
+    const head = document.createElement("div");
+    head.className = "group-head";
+    const chain = document.createElement("span");
+    chain.className = "chain";
+    chain.innerHTML = CHAIN_SVG;
+    head.appendChild(chain);
+    // A blank label shows no name at all — never a placeholder.
+    if (group.label) {
+      const nm = document.createElement("span");
+      nm.className = "group-name-ro";
+      nm.textContent = group.label;
+      head.appendChild(nm);
+    }
+    const parts = document.createElement("span");
+    parts.className = "parts";
+    parts.textContent = "(" + group.members.length + " parts)";
+    head.appendChild(parts);
+    return head;
+  }
+
+  // Owner, collapsed: one line standing in for the whole group.
+  groupSummary(group) {
+    const row = document.createElement("div");
+    row.className = "group-summary";
+    const nm = document.createElement("span");
+    nm.className = "nm";
+    nm.textContent = "All parts";
+    const parts = document.createElement("span");
+    parts.className = "parts";
+    parts.textContent = "(" + group.members.length + ")";
+    row.append(nm, parts);
+
+    const members = group.members.map((id) => this.records.get(id)).filter(Boolean);
+    const eye = document.createElement("button");
+    eye.type = "button";
+    eye.className = "piece-eye" + (members.every((r) => r.mesh.visible) ? "" : " off");
+    eye.innerHTML = EYE_SVG;
+    eye.title = "Show / hide every part";
+    eye.addEventListener("click", () => {
+      const anyOn = members.some((r) => r.mesh.visible);
+      group.members.forEach((id) => {
+        const rec = this.records.get(id);
+        if (rec && rec.mesh.visible === anyOn) this.toggleVisible(id);
+      });
+    });
+    row.appendChild(eye);
+    row.appendChild(this.buildGroupDropdown(group));
+    return row;
+  }
+
+  groupExpander(group, body) {
+    const open = this.expandedGroups.has(group.id);
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "expander" + (open ? " open" : "");
+    btn.innerHTML = '<span class="tw">▸</span> per-part colors, visibility &amp; transform';
+    btn.addEventListener("click", () => {
+      if (open) this.expandedGroups.delete(group.id);
+      else this.expandedGroups.add(group.id);
+      this.build(this.print, this.palette, this.records, this.designOn);
+    });
+    if (!open) return btn;
+
+    const wrap = document.createElement("div");
+    wrap.appendChild(btn);
+    const members = document.createElement("div");
+    members.className = "members";
+    group.members.forEach((id) => {
+      const def = this.print.pieces.find((p) => p.id === id);
+      if (def) members.appendChild(this.buildPieceRow(def, { inGroup: group }));
+    });
+    wrap.appendChild(members);
+    return wrap;
+  }
+
+  // One control for the whole group, limited to colors every member offers.
+  buildGroupDropdown(group) {
+    const offered = this.links.offeredIdsFor(group);
+    return this.colorDropdown({
+      offered,
+      current: () => group.color,
+      pick: (colorId) => this.onColorChange(group.members[0], colorId),
+      key: "group:" + group.id,
+    });
   }
 
   // ---- owner: launcher + dialog ----
@@ -181,12 +335,97 @@ export class PieceList {
     this.buildSubsetEditor(this.dialogEls.body, def);
   }
 
+  // One piece row — identical whether the piece stands alone or sits in a group.
+  buildPieceRow(def, { inGroup = null } = {}) {
+    const row = document.createElement("div");
+    row.className = "piece-row";
+    row.dataset.pieceId = def.id;
+
+    const top = document.createElement("div");
+    top.className = "piece-row-top";
+
+    if (this.designOn && this.links) top.appendChild(this.buildCheckbox(def.id));
+
+    const label = document.createElement("div");
+    label.className = "piece-label";
+    label.textContent = def.label;
+    top.appendChild(label);
+
+    if (this.designOn && inGroup) {
+      const un = document.createElement("button");
+      un.type = "button";
+      un.className = "unlink-btn";
+      un.innerHTML = UNLINK_SVG;
+      un.title = "Remove " + def.label + " from this group";
+      un.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.links.removeMember(inGroup.id, def.id);
+      });
+      top.appendChild(un);
+    }
+
+    const eye = document.createElement("button");
+    eye.type = "button";
+    eye.className = "piece-eye";
+    eye.title = "Show / hide this piece";
+    eye.innerHTML = EYE_SVG;
+    eye.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.toggleVisible(def.id);
+    });
+    top.appendChild(eye);
+    row.appendChild(top);
+
+    if (this.designOn) row.appendChild(this.buildColorsButton(def));
+    else row.appendChild(this.buildDropdown(def));
+
+    row.addEventListener("click", (e) => {
+      if (e.target.closest("button, .subset-list, .dd, input, .chk")) return;
+      const rec = this.records.get(def.id);
+      if (!rec || !rec.mesh.visible) return;
+      if (this.designOn && this.onSelect) this.onSelect(def.id);
+    });
+    return row;
+  }
+
+  buildCheckbox(pieceId) {
+    const on = this.selected.has(pieceId);
+    const chk = document.createElement("span");
+    chk.className = "chk" + (on ? " on" : "");
+    chk.textContent = on ? "✓" : "";
+    chk.title = "Select for linking";
+    chk.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (this.selected.has(pieceId)) this.selected.delete(pieceId);
+      else this.selected.add(pieceId);
+      const row = this.rowFor(pieceId);
+      if (row) {
+        const box = row.querySelector(".chk");
+        box.classList.toggle("on", this.selected.has(pieceId));
+        box.textContent = this.selected.has(pieceId) ? "✓" : "";
+      }
+      this.syncLinkBar();
+    });
+    return chk;
+  }
+
   // ---- visitor: one dropdown of the piece's offered colors ----
 
   buildDropdown(def) {
-    const rec = this.records.get(def.id);
+    return this.colorDropdown({
+      offered: this.palette.offeredIds(def),
+      current: () => this.records.get(def.id).color,
+      pick: (colorId) => this.onColorChange(def.id, colorId),
+      key: "piece:" + def.id,
+    });
+  }
+
+  // Shared swatch dropdown. `current` is read lazily so a repaint always shows
+  // the live value, which matters for a group where any member can change it.
+  colorDropdown({ offered, current, pick, key }) {
     const dd = document.createElement("span");
     dd.className = "dd";
+    dd.dataset.ddKey = key;
 
     const btn = document.createElement("button");
     btn.type = "button";
@@ -200,8 +439,7 @@ export class PieceList {
     btn.append(sw, nm, caret);
 
     const paint = () => {
-      const current = this.records.get(def.id).color;
-      const color = this.palette.resolve(current);
+      const color = this.palette.resolve(current());
       paintSwatch(sw, color);
       nm.textContent = color.name;
       btn.title = swatchTitle(color);
@@ -216,31 +454,31 @@ export class PieceList {
         return;
       }
       openFloatingMenu(btn, (menu) => {
-      this.palette.offeredIds(def).forEach((colorId) => {
-        const color = this.palette.resolve(colorId);
-        const mi = document.createElement("div");
-        mi.className = "mi";
-        const msw = document.createElement("span");
-        msw.className = "dd-sw";
-        paintSwatch(msw, color);
-        const mnm = document.createElement("span");
-        mnm.className = "nm";
-        mnm.textContent = color.name;
-        mi.append(msw, mnm);
-        if (colorId === this.records.get(def.id).color) {
-          const ck = document.createElement("span");
-          ck.className = "ck";
-          ck.textContent = "✓";
-          mi.appendChild(ck);
-        }
-        mi.title = swatchTitle(color);
-        mi.addEventListener("click", () => {
-          closeMenus();
-          if (this.onColorChange) this.onColorChange(def.id, colorId);
-          paint();
+        offered.forEach((colorId) => {
+          const color = this.palette.resolve(colorId);
+          const mi = document.createElement("div");
+          mi.className = "mi";
+          const msw = document.createElement("span");
+          msw.className = "dd-sw";
+          paintSwatch(msw, color);
+          const mnm = document.createElement("span");
+          mnm.className = "nm";
+          mnm.textContent = color.name;
+          mi.append(msw, mnm);
+          if (colorId === current()) {
+            const ck = document.createElement("span");
+            ck.className = "ck";
+            ck.textContent = "✓";
+            mi.appendChild(ck);
+          }
+          mi.title = swatchTitle(color);
+          mi.addEventListener("click", () => {
+            closeMenus();
+            pick(colorId);
+            paint();
+          });
+          menu.appendChild(mi);
         });
-        menu.appendChild(mi);
-      });
       });
     });
 
@@ -498,6 +736,71 @@ export class PieceList {
   }
 
 
+  // ---- link bar ----
+
+  // Selection is transient: anything no longer on screen is dropped so a stale
+  // tick cannot be acted on after a rebuild.
+  syncLinkBar() {
+    const els = this.linkBarEls;
+    if (!els || !this.links) return;
+    [...this.selected].forEach((id) => {
+      if (!this.rowFor(id)) this.selected.delete(id);
+    });
+    const n = this.selected.size;
+    els.bar.classList.toggle("hidden", !this.designOn || n < 1);
+    els.count.textContent = n;
+    els.newGroup.disabled = n < 2;
+    els.newGroup.textContent = n < 2 ? "Link (pick 2+)" : "Link into a group";
+
+    els.addSlot.innerHTML = "";
+    const groups = this.print ? this.print.links : [];
+    if (!groups.length || n < 1) return;
+    const wrap = document.createElement("span");
+    wrap.className = "link-add-wrap";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn";
+    btn.textContent = "Add to group ▾";
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const ids = [...this.selected];
+      openFloatingMenu(btn, (menu) => {
+        groups.forEach((g) => {
+          const mi = document.createElement("div");
+          mi.className = "mi";
+          const chain = document.createElement("span");
+          chain.className = "chain";
+          chain.style.color = "var(--link)";
+          chain.innerHTML = CHAIN_SVG;
+          const nm = document.createElement("span");
+          nm.className = "nm";
+          nm.textContent = (g.label || "Unnamed group") + " · " + g.members.length + " parts";
+          mi.append(chain, nm);
+          mi.addEventListener("click", () => {
+            closeMenus();
+            this.selected.clear();
+            this.links.addTo(g.id, ids);
+          });
+          menu.appendChild(mi);
+        });
+      });
+    });
+    wrap.appendChild(btn);
+    els.addSlot.appendChild(wrap);
+  }
+
+  wireLinkBar() {
+    const els = this.linkBarEls;
+    if (!els || !this.links) return;
+    els.newGroup.addEventListener("click", () => {
+      const ids = [...this.selected];
+      if (ids.length < 2) return;
+      this.selected.clear();
+      this.links.create(ids);
+      toast("Linked " + ids.length + " pieces — name the group in its header");
+    });
+  }
+
   // ---- shared state ----
 
   rowFor(id) {
@@ -519,6 +822,11 @@ export class PieceList {
   // Repaint every surface showing a piece's color: the visitor dropdown, the
   // owner's row launcher, and the rows in the open dialog.
   syncPiece(id) {
+    const group = this.links && this.links.groupOf(id);
+    if (group) {
+      const gdd = this.root.querySelector('.dd[data-dd-key="group:' + group.id + '"]');
+      if (gdd && gdd.paint) gdd.paint();
+    }
     const def = this.print && this.print.pieces.find((p) => p.id === id);
     const row = this.rowFor(id);
     if (row && def) {

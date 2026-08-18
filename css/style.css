@@ -1029,3 +1029,145 @@ dialog h2 .count {
 .piece-colors-btn .nm { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .piece-colors-btn .count { color: var(--text-dim); font-size: 11px; white-space: nowrap; }
 .piece-colors-btn .caret { color: var(--text-dim); }
+
+/* ---------- link groups ---------- */
+.link-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 8px 10px;
+  border: 1px dashed var(--link);
+  border-radius: 8px;
+  background: #101d1b;
+}
+
+.link-bar .txt { flex: 1; font-size: 12px; }
+.link-bar .txt b { color: var(--link); }
+.link-bar .btn.link-btn { background: #123f39; border-color: var(--link); color: #b9f4ea; }
+.link-bar .btn.link-btn:hover:not(:disabled) { background: #164a43; }
+.link-add-wrap { position: relative; display: inline-flex; }
+
+.group {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-2);
+}
+
+/* the stripe is the "these move together" signal, carried in both modes */
+.group::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 8px 0 0 8px;
+  background: var(--link);
+}
+
+.group-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 9px 7px 12px;
+  border-bottom: 1px solid var(--border);
+  /* the sidebar can be narrow; let the mode toggle drop to its own line
+     rather than crushing the name field */
+  flex-wrap: wrap;
+}
+
+.group-head .group-name { min-width: 90px; }
+.group-head .seg { margin-left: auto; }
+
+.group-head .chain { display: flex; color: var(--link); flex-shrink: 0; }
+.group-head .chain svg { width: 14px; height: 14px; }
+
+.group-name {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.group-name:hover { border-color: var(--border); }
+.group-name:focus { outline: none; border-color: var(--accent); background: var(--bg); }
+.group-name-ro { font-weight: 700; color: var(--text); }
+.group-head .parts { font-size: 11px; color: var(--text-dim); white-space: nowrap; }
+.group-head .seg button { padding: 3px 8px; font-size: 11px; flex: none; }
+
+.group-body {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 8px 9px 9px 12px;
+}
+
+.group-body .piece-row { background: var(--bg-3); }
+.group-summary { display: flex; align-items: center; gap: 8px; }
+.group-summary .nm { font-weight: 600; flex: 1; }
+
+.expander {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 0;
+  border: none;
+  background: none;
+  color: var(--text-dim);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.expander:hover { color: var(--text); }
+.expander .tw { transition: transform 0.15s; }
+.expander.open .tw { transform: rotate(90deg); }
+
+.members {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-left: 7px;
+  border-left: 1px dashed var(--border);
+}
+
+.chk {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--accent);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.chk.on { border-color: var(--accent); background: rgba(79, 140, 255, 0.16); }
+
+.unlink-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.unlink-btn:hover { color: var(--danger); border-color: var(--danger); }
+.unlink-btn svg { width: 14px; height: 14px; }
