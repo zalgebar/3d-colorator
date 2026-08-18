@@ -8,6 +8,7 @@
   --accent: #4f8cff;
   --accent-dim: #2f5eb5;
   --danger: #ff5c5c;
+  --warn: #ffd27a;
   --radius: 8px;
   --sidebar-w: 320px;
 }
@@ -1267,3 +1268,33 @@ dialog h2 .count {
 .hint-inline { font-weight: 400; color: var(--text-dim); font-size: 11px; }
 .form-row.inline { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .form-row.inline input[type="number"] { width: 84px; text-align: right; }
+
+/* ---------- share reconciliation ---------- */
+#reconcile-dialog h2 { color: var(--warn); }
+#reconcile-list { margin-top: 10px; max-height: 46vh; overflow-y: auto; }
+
+.recon-row {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 11px 0;
+  border-top: 1px solid var(--border);
+}
+
+.recon-row:first-child { border-top: none; }
+.recon-head { display: flex; align-items: center; gap: 10px; }
+.recon-name { font-weight: 700; }
+
+.recon-was {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  min-width: 0;
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
+.recon-was .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recon-reason { font-size: 11px; color: var(--warn); }
+.recon-row .dd { width: 100%; }

@@ -18,6 +18,8 @@ import { DesignIO } from "./ui/submit.js";
 import { initFeedback, toast, showLoading } from "./ui/toast.js";
 import { initSidebarResizer } from "./ui/resizer.js";
 import { slugId, validateId } from "./data/ids.js";
+import { buildShareLink, parseShareLink, classifyShared } from "./ui/share.js";
+import { paintSwatch, swatchTitle } from "./ui/swatch.js";
 
 const isOwner = new URLSearchParams(window.location.search).has("design");
 
@@ -48,6 +50,8 @@ const els = {};
   "palette-count-inline", "palette-list", "btn-add-color",
   "piece-colors-dialog", "piece-colors-title", "piece-colors-body", "btn-piece-colors-close",
   "btn-piece-colors-cancel",
+  "btn-copy-link", "reconcile-dialog", "reconcile-count", "reconcile-list",
+  "btn-reconcile-cancel", "btn-reconcile-apply",
   "sidebar-resizer", "link-bar", "link-count", "link-add-slot", "btn-new-group",
   "piece-dialog", "piece-dialog-title", "piece-name-input", "piece-id-input", "piece-stl", "piece-instances",
   "piece-dup-hint", "btn-piece-dialog-close", "duplicate-dialog", "duplicate-title", "duplicate-count",
@@ -59,6 +63,7 @@ const els = {};
 });
 
 let viewer, editor, pieceList, designIO, paletteEditor;
+let pendingReconcile = null;
 let gridVisible = isOwner;
 let axesVisible = isOwner;
 
@@ -299,6 +304,16 @@ function wireUI() {
   els.btnSubmitSend.addEventListener("click", () => designIO.send());
   els.btnSubmitCancel.addEventListener("click", () => els.submitDialog.close());
 
+  els.btnCopyLink.addEventListener("click", copyShareLink);
+  els.btnReconcileCancel.addEventListener("click", () => els.reconcileDialog.close());
+  els.btnReconcileApply.addEventListener("click", () => {
+    els.reconcileDialog.close();
+    if (!pendingReconcile) return;
+    pendingReconcile.forEach((p) => applyShareTarget(p.key, p.chosen));
+    state.dirty = false;
+    pendingReconcile = null;
+  });
+
   els.btnCopyPalette.addEventListener("click", copyPalette);
   els.btnDownloadPalette.addEventListener("click", downloadPalette);
 
@@ -343,8 +358,14 @@ async function loadCatalog() {
     buildPrintUI();
     paletteEditor.render();
     if (manifest.prints.length) {
-      await setPrint(manifest.prints[0].id);
+      const share = parseShareLink(window.location.search);
+      const wanted =
+        share.print && manifest.prints.some((p) => p.id === share.print)
+          ? share.print
+          : manifest.prints[0].id;
+      await setPrint(wanted);
       if (isOwner) setDesignMode(true);
+      applySharedColors(share.colors);
     }
   } catch (err) {
     toast("Error loading catalog: " + err.message, true);
@@ -466,6 +487,121 @@ async function loadPiece(print, def, index) {
   mesh.renderOrder = index * 2 + 1;
 
   state.records.set(def.id, { mesh, backMesh, def, color: colorId });
+}
+
+// ---- share links ----
+
+// What a shared key refers to, and what it is allowed to be set to. A piece
+// inside a link group is constrained by the group, since setting it sets the
+// whole group.
+function shareTarget(key) {
+  const group = state.print.links.find((l) => l.id === key);
+  if (group) {
+    return { kind: "group", id: key, label: group.label || "Linked pieces",
+             offered: groupOfferedIds(group), current: group.color };
+  }
+  const def = state.print.pieces.find((p) => p.id === key);
+  if (!def) return null;
+  const owning = groupOf(def.id);
+  const rec = state.records.get(def.id);
+  return {
+    kind: "piece",
+    id: key,
+    label: def.label,
+    offered: owning ? groupOfferedIds(owning) : state.palette.offeredIds(def),
+    current: rec ? rec.color : def.defaultColor,
+  };
+}
+
+function applyShareTarget(key, colorId) {
+  const group = state.print.links.find((l) => l.id === key);
+  if (group) {
+    setGroupColor(group, colorId);
+    group.members.forEach((id) => pieceList.syncPiece(id));
+    return;
+  }
+  setPieceColor(key, colorId);
+}
+
+// Applies a shared coloring, asking about anything that cannot be honoured.
+function applySharedColors(shared) {
+  if (!shared.length) return;
+  const { applied, problems } = classifyShared({
+    shared,
+    palette: state.palette,
+    resolveTarget: shareTarget,
+  });
+
+  applied.forEach((colorId, key) => applyShareTarget(key, colorId));
+  // A shared link describes a coloring, not an edit — nothing to save yet.
+  state.dirty = false;
+
+  if (problems.length) openReconcileDialog(problems);
+}
+
+function openReconcileDialog(problems) {
+  els.reconcileCount.textContent =
+    problems.length + " shared color" + (problems.length === 1 ? "" : "s") + " couldn't be used";
+
+  const draw = () => {
+    els.reconcileList.innerHTML = "";
+    problems.forEach((problem) => {
+      const row = document.createElement("div");
+      row.className = "recon-row";
+
+      const head = document.createElement("div");
+      head.className = "recon-head";
+      const name = document.createElement("span");
+      name.className = "recon-name";
+      name.textContent = problem.target.label;
+      head.appendChild(name);
+
+      const was = document.createElement("span");
+      was.className = "recon-was";
+      if (problem.kind === "unoffered") {
+        const sw = document.createElement("span");
+        sw.className = "dd-sw";
+        paintSwatch(sw, state.palette.resolve(problem.requested));
+        const nm = document.createElement("span");
+        nm.className = "nm";
+        nm.textContent = "shared: " + problem.requestedName;
+        was.append(sw, nm);
+      } else {
+        // No swatch: we cannot draw a color we no longer know.
+        const nm = document.createElement("span");
+        nm.className = "nm";
+        nm.textContent = "shared: “" + problem.requested + "”";
+        was.appendChild(nm);
+      }
+      head.appendChild(was);
+      row.appendChild(head);
+
+      const reason = document.createElement("div");
+      reason.className = "recon-reason";
+      reason.textContent =
+        problem.kind === "unoffered"
+          ? "✕ not offered for this piece — nearest offered color picked:"
+          : "✕ no longer in the catalog — we can't match a color to it, so choose one:";
+      row.appendChild(reason);
+
+      row.appendChild(
+        pieceList.colorDropdown({
+          offered: problem.target.offered,
+          current: () => problem.chosen,
+          pick: (colorId) => {
+            problem.chosen = colorId;
+            draw();
+          },
+          key: "recon:" + problem.key,
+        })
+      );
+      els.reconcileList.appendChild(row);
+    });
+  };
+
+  draw();
+  pendingReconcile = problems;
+  els.reconcileDialog.showModal();
 }
 
 // ---- STL instances ----
@@ -989,6 +1125,21 @@ function palettePayload() {
     null,
     2
   );
+}
+
+function copyShareLink() {
+  if (!state.print) return;
+  const url = buildShareLink({
+    print: state.print,
+    links: state.print.links,
+    records: state.records,
+  });
+  const done = () => toast("Share link copied");
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(done).catch(() => fallbackCopy(url, done));
+  } else {
+    fallbackCopy(url, done);
+  }
 }
 
 function copyPalette() {

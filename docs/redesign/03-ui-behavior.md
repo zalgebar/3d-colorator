@@ -280,10 +280,15 @@ Classify every param, then:
 | Not offered for this piece | Shows the shared color's swatch + name, reason, and a dropdown **pre-picked to the nearest offered color**. |
 | Not in the catalog | Shows the raw id as text (**no swatch** — we can't draw a color we no longer know), reason "we can't match a color to it, so choose one", dropdown starting at the piece default. |
 
-Dropdowns list that piece's **currently offered** colors. **Apply** commits; **Cancel** applies
-nothing.
+Dropdowns list that piece's **currently offered** colors — for a piece inside a link group that
+means the group's intersection, since setting one member sets them all. **Apply** commits;
+**Cancel** applies nothing.
 
 Copy rule: never claim to know what an unknown id looked like.
+
+Opening a link never marks the session dirty: a link describes a coloring to look at, not an
+edit to save. A `~rrggbb` custom request parses but classifies as *unknown* until the paid
+feature ships, so a future link degrades into a choice rather than a hard error.
 
 ---
 

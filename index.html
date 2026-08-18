@@ -79,7 +79,8 @@
     <section data-public-only>
       <h2>Share</h2>
       <div class="btn-row">
-        <button id="btn-screenshot" class="btn primary">Screenshot</button>
+        <button id="btn-copy-link" class="btn primary" type="button">Copy share link</button>
+        <button id="btn-screenshot" class="btn">Screenshot</button>
       </div>
       <div class="btn-row">
         <button id="btn-download-design" class="btn">Export Design</button>
@@ -137,6 +138,16 @@
   <div class="dialog-actions">
     <button id="btn-piece-colors-cancel" class="btn" type="button">Cancel</button>
     <button id="btn-piece-colors-close" class="btn primary" type="button">Save</button>
+  </div>
+</dialog>
+
+<dialog id="reconcile-dialog">
+  <h2>⚠ <span id="reconcile-count"></span></h2>
+  <p class="hint">Pick a replacement for each. Where the shared color is still in the catalog the nearest offered one is pre-selected; where it is gone there is nothing to match against, so it is your call.</p>
+  <div id="reconcile-list"></div>
+  <div class="dialog-actions">
+    <button id="btn-reconcile-cancel" class="btn" type="button">Cancel</button>
+    <button id="btn-reconcile-apply" class="btn primary" type="button">Apply colors</button>
   </div>
 </dialog>
 

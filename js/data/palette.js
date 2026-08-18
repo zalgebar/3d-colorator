@@ -114,6 +114,29 @@ export class Palette {
     return this.offeredIds(pieces[0]);
   }
 
+  // Closest candidate to a hex, by plain RGB distance. Used to suggest a
+  // replacement when a shared color is not offered for the piece it lands on.
+  nearestId(hex, candidateIds) {
+    const rgb = (h) => {
+      const n = parseInt(String(h).replace("#", ""), 16);
+      return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+    };
+    const target = rgb(hex);
+    let best = candidateIds[0] || null;
+    let bestD = Infinity;
+    candidateIds.forEach((id) => {
+      const c = this.byId(id);
+      if (!c) return;
+      const p = rgb(c.hex);
+      const d = Math.hypot(target[0] - p[0], target[1] - p[1], target[2] - p[2]);
+      if (d < bestD) {
+        bestD = d;
+        best = id;
+      }
+    });
+    return best;
+  }
+
   // A piece's starting color, repaired if it points outside its own offering.
   defaultColorOf(piece) {
     const offered = this.offeredIds(piece);
