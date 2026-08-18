@@ -1,0 +1,325 @@
+<title>3D Colorator — Collections &amp; Branding mockup</title>
+<style>
+  :root{
+    --bg:#0f1216; --bg-2:#161b21; --bg-3:#1d242c; --border:#2a333d;
+    --text:#d7dde4; --text-dim:#8b96a3; --accent:#4f8cff; --accent-dim:#2f5eb5;
+    --danger:#ff5c5c; --link:#37c8b4; --warn:#ffd27a; --ok:#3fbf6f; --radius:8px;
+    --mono:"SF Mono",Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:"Segoe UI",system-ui,-apple-system,sans-serif; font-size:13px; color:var(--text);
+    background:radial-gradient(1200px 700px at 20% -10%,#141a22,#0b0e12 60%); -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1180px; margin:0 auto; padding:22px 20px 60px;}
+  .mock-banner{display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; margin-bottom:16px; padding-bottom:14px; border-bottom:1px solid var(--border);}
+  .mock-banner h1{font-size:16px; margin:0; font-weight:700;}
+  .mode-pill{font-family:var(--mono); font-size:11px; color:var(--accent); border:1px solid var(--accent-dim); background:rgba(79,140,255,.12); padding:2px 7px; border-radius:20px;}
+  .mock-banner p{margin:0; color:var(--text-dim); font-size:12px; flex-basis:100%; line-height:1.5;}
+
+  .stage{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:18px; align-items:start;}
+  @media (max-width:900px){ .stage{grid-template-columns:1fr;} }
+  .panel{border:1px solid var(--border); border-radius:var(--radius); background:var(--bg-2); padding:12px; margin-bottom:16px;}
+  .panel h2{margin:0 0 3px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text-dim);}
+  .panel .sub{margin:0 0 12px; font-size:11px; color:var(--text-dim); line-height:1.5;}
+
+  .colls{display:flex; flex-direction:column; gap:7px;}
+  .coll{display:flex; align-items:center; gap:10px; padding:9px 10px; border:1px solid var(--border); border-radius:8px; background:var(--bg-3); cursor:pointer;}
+  .coll:hover{border-color:#3d4a58;}
+  .coll.on{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); background:rgba(79,140,255,.1);}
+  .coll .cn{font-weight:700;} .coll .cid{font-family:var(--mono); font-size:10px; color:var(--text-dim); margin-left:auto;}
+
+  .sw{display:flex; align-items:flex-start; gap:9px; padding:9px 0; border-top:1px solid var(--border); cursor:pointer;}
+  .sw:first-of-type{border-top:none;}
+  .sw input{margin-top:2px; accent-color:var(--accent); flex-shrink:0;}
+  .sw .t{font-size:12px; line-height:1.4;} .sw .t b{color:var(--text);} .sw .t span{display:block; color:var(--text-dim); font-size:11px; margin-top:1px;}
+
+  table{width:100%; border-collapse:collapse; font-size:12px;}
+  th{font-size:10px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-dim); font-weight:700; text-align:center; padding:0 0 7px;}
+  th:first-child{text-align:left;}
+  td{padding:8px 0; border-top:1px solid var(--border); text-align:center;}
+  td:first-child{text-align:left; font-weight:600;}
+  .yn{font-weight:700;} .yn.y{color:var(--ok);} .yn.n{color:var(--text-dim);}
+  .yn.i{color:var(--accent); font-style:italic; font-weight:600;}
+  .eff{font-weight:700; border-radius:5px; padding:2px 8px; font-size:11px;}
+  .eff.y{color:#bff3d3; background:#123024; border:1px solid #2b6b46;}
+  .eff.n{color:var(--text-dim); background:var(--bg); border:1px solid var(--border);}
+  .op{color:var(--text-dim); font-family:var(--mono); font-size:11px;}
+
+  .urlbox{font-family:var(--mono); font-size:11px; word-break:break-all; background:var(--bg); border:1px solid var(--border);
+    border-radius:7px; padding:9px 10px; color:var(--text-dim); line-height:1.6;}
+  .urlbox b{color:var(--text);} .urlbox .k{color:var(--accent);}
+
+  /* app preview */
+  .app{border:1px solid var(--border); border-radius:10px; overflow:hidden; background:var(--bg); box-shadow:0 10px 34px rgba(0,0,0,.42);}
+  .app-top{display:flex; align-items:center; gap:8px; height:46px; padding:0 13px; background:var(--bg-2); border-bottom:1px solid var(--border);}
+  .brand{font-size:14px; font-weight:700; letter-spacing:.01em;}
+  .brand em{font-style:normal; font-weight:400; color:var(--text-dim);}
+  .app-body{display:grid; grid-template-columns:minmax(0,1fr) 132px; min-height:296px;}
+  .side{padding:11px; display:flex; flex-direction:column; gap:11px; border-right:1px solid var(--border);}
+  .sec{border:1px solid var(--border); border-radius:8px; background:var(--bg-2); padding:9px 10px;}
+  .sec h3{margin:0 0 7px; font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-dim); font-weight:700;}
+  .plist{display:flex; flex-direction:column; gap:5px;}
+  .pcard{display:flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid var(--border); border-radius:7px; background:var(--bg-3); font-weight:600; font-size:12px;}
+  .pcard.on{border-color:var(--accent); background:rgba(79,140,255,.12);}
+  .pcard .cat{margin-left:auto; font-family:var(--mono); font-size:9px; color:var(--text-dim);}
+  .btnfake{padding:6px 10px; border:1px solid var(--border); border-radius:7px; background:var(--bg-3); font-size:11px; font-weight:600; text-align:center;}
+  .btnfake.primary{background:var(--accent-dim); border-color:var(--accent); color:#fff;}
+  .shoplinks{display:flex; flex-direction:column; gap:4px; margin-top:7px;}
+  .shoplinks a{color:var(--accent); font-size:11px; text-decoration:none;}
+  .shoplinks a:hover{text-decoration:underline;}
+  .microhint{font-size:10px; color:var(--text-dim); margin:7px 0 0; line-height:1.45;}
+  .vp{background:radial-gradient(circle at 50% 45%,#1a212b,#0c0f13 72%); position:relative;}
+  .vp .blob{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:70px; height:88px; border-radius:9px;
+    background:#f75403; box-shadow:0 8px 22px rgba(0,0,0,.55), inset 0 1px 0 #ffffff2a;}
+  .vp .cap{position:absolute; bottom:7px; left:0; right:0; text-align:center; font-size:9px; color:var(--text-dim);}
+  .absent{border:1px dashed var(--border); border-radius:8px; padding:9px 10px; font-size:11px; color:var(--text-dim); line-height:1.45; background:var(--bg);}
+
+  .tip{margin:0; font-size:11px; color:var(--text-dim); line-height:1.55;} .tip code{font-family:var(--mono); color:var(--text);} .tip b{color:var(--text);}
+  pre{margin:10px 0 0; font-family:var(--mono); font-size:11px; line-height:1.55; color:var(--text-dim); background:var(--bg);
+    border:1px solid var(--border); border-radius:7px; padding:10px; overflow-x:auto;}
+  pre .k{color:var(--accent);} pre .s{color:#9ae6b4;} pre .c{color:#5d6b7a;}
+  pre .hit{display:block; background:rgba(79,140,255,.13); border-left:2px solid var(--accent); margin-left:-10px; padding-left:8px;}
+  pre .miss{display:block; opacity:.4; margin-left:-10px; padding-left:10px;}
+</style>
+
+<div class="wrap">
+  <div class="mock-banner">
+    <h1>3D Colorator</h1><span class="mode-pill">collections</span>
+    <p>One codebase, many storefronts. A <b>collection</b> is a filter + branding preset: it renames the app, narrows which prints are listed, and switches the submit channel and shop links. Feature flags resolve as <b>global AND collection</b>, so a global switch is a true kill-switch.</p>
+  </div>
+
+  <div class="stage">
+    <div>
+      <div class="panel">
+        <h2>Collection</h2>
+        <p class="sub">What the visitor lands on. In the real app this is the <code style="font-family:var(--mono)">?collection=</code> parameter.</p>
+        <div class="colls" id="colls"></div>
+        <div class="urlbox" id="urlbox" style="margin-top:11px"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Global switches</h2>
+        <p class="sub">App-wide defaults <em>and</em> master flags. A collection that says nothing inherits these; one that says <code style="font-family:var(--mono)">false</code> opts out. Nothing can turn a feature on that global has off.</p>
+        <label class="sw"><input type="checkbox" id="g-submit" checked><span class="t"><b>Submit designs</b><span>Master kill-switch for the nostr DM submit flow.</span></span></label>
+        <label class="sw"><input type="checkbox" id="g-custom"><span class="t"><b>Custom color requests</b><span>The planned paid off-palette add-on.</span></span></label>
+      </div>
+
+      <div class="panel">
+        <h2>Effective config</h2>
+        <p class="sub">How the two levels resolve for the selected collection.</p>
+        <table>
+          <thead><tr><th>Feature</th><th>Global</th><th class="op">&amp;&amp;</th><th>Collection</th><th>Effective</th></tr></thead>
+          <tbody id="efftable"></tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <h2>Where the filter gets its categories</h2>
+        <p class="sub">The manifest is the index the sidebar is built from — it carries just enough to list and filter, so the app doesn't fetch every print file at startup. A print matches if it carries <b>any</b> of the collection's categories, and both sides are arrays — so one print can appear in several collections.</p>
+        <pre id="manifest"></pre>
+        <p class="tip" style="margin-top:11px">Each print's own <code>prints/&lt;id&gt;.json</code> also declares its <code>categories</code> as the source of truth — the manifest denormalizes them. Pieces, palettes and geometry load lazily when a print is selected.</p>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel" style="padding:0; background:transparent; border:none;">
+        <div class="app">
+          <div class="app-top"><div class="brand" id="brand"></div></div>
+          <div class="app-body">
+            <div class="side">
+              <div class="sec">
+                <h3 id="print-head">Prints</h3>
+                <div class="plist" id="plist"></div>
+              </div>
+              <div id="submit-sec"></div>
+            </div>
+            <div class="vp"><div class="blob" id="blob"></div><span class="cap">viewport</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>What this collection is, as data</h2>
+        <pre id="cfg"></pre>
+        <p class="tip" style="margin-top:11px"><b>SeedSigner Designer is preserved</b> as a collection of the same app — same code, same deploy, its own name, print list and shop. Nothing is forked.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const PRINTS=[
+  {id:"open_pill_mini_w_coverplate", name:"Open Pill Mini w/ Coverplate", cats:["seedsigner"]},
+  {id:"open_pill_mini",              name:"Open Pill Mini",               cats:["seedsigner"]},
+  {id:"phone_stand",                 name:"Phone Stand",                  cats:["accessories"]},
+  {id:"filament_clip",               name:"Filament Clip",                cats:["accessories"]},
+  {id:"dice_tower",                  name:"Dice Tower",                   cats:["games","accessories"]},
+];
+// Global holds the DEFAULTS every collection inherits unless it overrides them.
+const GLOBAL={
+  submit:{enabled:true, channel:"nostr", recipient:"zalgebar", orderIdLabel:"Order ID",
+    shops:[{label:"Browse the shop",url:"https://zalgebar.com/shop"}]},
+  customColors:{enabled:false},
+};
+// A collection omitting `enabled` INHERITS global; explicit false opts out;
+// explicit true still needs global on. Other keys shallow-merge over global.
+const COLLECTIONS={
+  default:{
+    id:"default", name:"3D Colorator", tagline:"Color any 3D print",
+    filter:null, accent:"#f75403",
+    submit:null, customColors:null           // inherit everything
+  },
+  seedsigner:{
+    id:"seedsigner", name:"SeedSigner Designer", tagline:"Enclosure coloring",
+    filter:{categories:["seedsigner"]}, accent:"#f75403",
+    submit:{shops:[{label:"Order a SeedSigner",url:"https://zalgebar.com/shop"}]},
+    customColors:{enabled:false}             // explicit opt-out
+  },
+  shop:{
+    id:"shop", name:"Zalgebar Shop", tagline:"Everything for sale",
+    filter:{categories:["seedsigner","accessories"]}, accent:"#37c8b4",
+    submit:{orderIdLabel:"Etsy order #",
+      shops:[{label:"Buy on Etsy",url:"https://etsy.com/shop/zalgebar"},{label:"Buy direct",url:"https://zalgebar.com/shop"}]},
+    customColors:null
+  },
+  games:{
+    id:"games", name:"Print &amp; Play", tagline:"Free models, no ordering",
+    filter:{categories:["games"]}, accent:"#9a57bd",
+    submit:{enabled:false},                  // explicit opt-out
+    customColors:null
+  },
+};
+const global={submit:true, custom:false};
+let current="seedsigner";
+
+const $=(s,r=document)=>r.querySelector(s);
+const el=(t,c)=>{const e=document.createElement(t); if(c)e.className=c; return e;};
+const coll=()=>COLLECTIONS[current];
+// a print matches if it carries ANY of the collection's categories (union)
+function matches(p,c){ return !c.filter || c.filter.categories.some(cat=>p.cats.includes(cat)); }
+function printsFor(c){ return PRINTS.filter(p=>matches(p,c)); }
+// undefined/null on the collection = inherit; explicit false = opt out; true still needs global on
+const own=(o)=> (o && o.enabled!==undefined) ? o.enabled : undefined;
+const effSubmit=c=>global.submit && (own(c.submit)===undefined ? true : own(c.submit));
+const effCustom=c=>global.custom && (own(c.customColors)===undefined ? true : own(c.customColors));
+const submitCfg=c=>({...GLOBAL.submit, ...(c.submit||{})});   // collection shallow-merges over global
+
+function renderColls(){
+  const box=$("#colls"); box.innerHTML="";
+  Object.values(COLLECTIONS).forEach(c=>{
+    const row=el("div","coll"+(c.id===current?" on":""));
+    const nm=el("span","cn"); nm.innerHTML=c.name; row.appendChild(nm);
+    const id=el("span","cid"); id.textContent=c.id==="default"?"(no parameter)":"?collection="+c.id; row.appendChild(id);
+    row.addEventListener("click",()=>{ current=c.id; renderAll(); });
+    box.appendChild(row);
+  });
+}
+function renderUrl(){
+  const c=coll();
+  $("#urlbox").innerHTML = c.id==="default"
+    ? "https://zalgebar.com/<b>color</b>"
+    : "https://zalgebar.com/<b>color</b>?<span class='k'>collection</span>=<b>"+c.id+"</b>";
+}
+function renderTable(){
+  const c=coll(); const body=$("#efftable"); body.innerHTML="";
+  const rows=[
+    {label:"Submit designs", g:global.submit, c:own(c.submit), e:effSubmit(c)},
+    {label:"Custom colors",  g:global.custom, c:own(c.customColors), e:effCustom(c)},
+  ];
+  rows.forEach(r=>{
+    const tr=el("tr");
+    const td0=el("td"); td0.textContent=r.label; tr.appendChild(td0);
+    const tdg=el("td"); const sg=el("span","yn "+(r.g?"y":"n")); sg.textContent=r.g?"✓ on":"✕ off"; tdg.appendChild(sg); tr.appendChild(tdg);
+    const op=el("td","op"); op.textContent="&&"; tr.appendChild(op);
+    const tdc=el("td"); const sc=el("span","yn "+(r.c===undefined?"i":r.c?"y":"n"));
+    sc.textContent = r.c===undefined ? "inherit" : r.c ? "✓ on" : "✕ off"; tdc.appendChild(sc); tr.appendChild(tdc);
+    const tde=el("td"); const e=el("span","eff "+(r.e?"y":"n")); e.textContent=r.e?"ON":"OFF"; tde.appendChild(e); tr.appendChild(tde);
+    body.appendChild(tr);
+  });
+}
+function renderApp(){
+  const c=coll();
+  $("#brand").innerHTML=c.name+" <em>"+c.tagline+"</em>";
+  $("#blob").style.background=c.accent;
+
+  const list=printsFor(c);
+  $("#print-head").textContent = c.filter ? "Prints · "+c.filter.categories.join(" + ") : "Prints · all";
+  const pl=$("#plist"); pl.innerHTML="";
+  list.forEach((p,i)=>{
+    const card=el("div","pcard"+(i===0?" on":""));
+    const nm=el("span"); nm.textContent=p.name; card.appendChild(nm);
+    const cat=el("span","cat"); cat.textContent=p.cats.join(", "); card.appendChild(cat);
+    pl.appendChild(card);
+  });
+
+  const sec=$("#submit-sec"); sec.innerHTML="";
+  if(effSubmit(c)){
+    const s=submitCfg(c);
+    const box=el("div","sec");
+    const h=el("h3"); h.textContent="Share"; box.appendChild(h);
+    const b1=el("div","btnfake primary"); b1.textContent="Submit via "+s.channel+" DM"; box.appendChild(b1);
+    const hint=el("p","microhint"); hint.textContent=s.orderIdLabel+" required. Sent to "+s.recipient+"."; box.appendChild(hint);
+    const sl=el("div","shoplinks");
+    s.shops.forEach(sh=>{ const a=el("a"); a.href="#"; a.textContent=sh.label+" →"; a.addEventListener("click",e=>e.preventDefault()); sl.appendChild(a); });
+    box.appendChild(sl);
+    sec.appendChild(box);
+  }else{
+    const box=el("div","absent");
+    box.textContent = !global.submit
+      ? "Submit hidden — the global switch is off, so no collection can show it."
+      : "Submit hidden — this collection sets submit.enabled: false.";
+    sec.appendChild(box);
+  }
+  if(effCustom(c)){
+    const box=el("div","sec"); const h=el("h3"); h.textContent="Colors"; box.appendChild(h);
+    const b=el("div","btnfake"); b.textContent="+ Request a custom color"; box.appendChild(b);
+    const hint=el("p","microhint"); hint.textContent="Off-palette request — may add cost."; box.appendChild(hint);
+    sec.appendChild(box);
+  }
+}
+function renderCfg(){
+  const c=coll();
+  const q=s=>'<span class="s">"'+s+'"</span>';
+  const k=s=>'<span class="k">"'+s+'"</span>';
+  const cm=s=>'<span class="c">'+s+'</span>';
+  let out=cm("// global — the defaults every collection inherits")+'\n';
+  out+=k("submit")+': { '+k("enabled")+': '+(global.submit?"true":"false")+', '+k("recipient")+': '+q(GLOBAL.submit.recipient)+', … }\n\n';
+  out+=cm("// this collection")+'\n{\n  '+k(c.id)+': {\n';
+  out+='    '+k("name")+': '+q(c.name.replace(/&amp;/g,"&"))+',\n';
+  out+='    '+k("filter")+': '+(c.filter
+      ? '{ '+k("categories")+': ['+c.filter.categories.map(q).join(", ")+'] }'+(c.filter.categories.length>1?cm("   // any of these"):"")
+      : 'null'+cm("   // null = every print"))+',\n';
+  if(!c.submit){
+    out+='    '+cm("// no submit key → inherits global (currently "+(global.submit?"ON":"OFF")+")")+'\n';
+  }else if(c.submit.enabled===false){
+    out+='    '+k("submit")+': { '+k("enabled")+': false }'+cm("   // opts out even when global is on")+',\n';
+  }else{
+    const s=c.submit;
+    out+='    '+k("submit")+': {'+cm("   // enabled omitted → inherits global")+'\n';
+    if(s.orderIdLabel) out+='      '+k("orderIdLabel")+': '+q(s.orderIdLabel)+',\n';
+    out+='      '+k("shops")+': [\n'+s.shops.map(x=>'        { '+k("label")+': '+q(x.label)+', '+k("url")+': '+q(x.url)+' }').join(",\n")+'\n      ]\n';
+    out+='    },\n';
+  }
+  if(!c.customColors) out+='    '+cm("// no customColors key → inherits global")+'\n';
+  else out+='    '+k("customColors")+': { '+k("enabled")+': '+(c.customColors.enabled?"true":"false")+' }\n';
+  out+='  }\n}';
+  $("#cfg").innerHTML=out;
+}
+function renderManifest(){
+  const c=coll();
+  const q=s=>'<span class="s">"'+s+'"</span>';
+  const k=s=>'<span class="k">"'+s+'"</span>';
+  let out='<span class="c">// prints/manifest.json</span>\n{\n  '+k("version")+': '+q("2.0.0")+',\n  '+k("prints")+': [\n';
+  out+=PRINTS.map(p=>{
+    const line='    { '+k("id")+': '+q(p.id)+', '+k("categories")+': ['+p.cats.map(q).join(", ")+'] }';
+    return matches(p,c) ? '<span class="hit">'+line+'</span>' : '<span class="miss">'+line+'</span>';
+  }).join(",\n");
+  out+='\n  ]\n}';
+  $("#manifest").innerHTML=out;
+}
+function renderAll(){ renderColls(); renderUrl(); renderTable(); renderApp(); renderCfg(); renderManifest(); }
+
+$("#g-submit").addEventListener("change",e=>{ global.submit=e.target.checked; renderAll(); });
+$("#g-custom").addEventListener("change",e=>{ global.custom=e.target.checked; renderAll(); });
+renderAll();
+</script>

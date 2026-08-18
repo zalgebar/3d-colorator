@@ -1,0 +1,511 @@
+<title>3D Colorator — Piece Linking &amp; Collapsed Groups mockup</title>
+<style>
+  :root{
+    --bg:#0f1216; --bg-2:#161b21; --bg-3:#1d242c; --border:#2a333d;
+    --text:#d7dde4; --text-dim:#8b96a3; --accent:#4f8cff; --accent-dim:#2f5eb5;
+    --danger:#ff5c5c; --link:#37c8b4; --radius:8px;
+    --mono:"SF Mono",Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:"Segoe UI",system-ui,-apple-system,sans-serif; font-size:13px;
+    color:var(--text); background:radial-gradient(1200px 700px at 20% -10%,#141a22,#0b0e12 60%);
+    -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1180px; margin:0 auto; padding:22px 20px 60px;}
+  .mock-banner{display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; margin-bottom:16px;
+    padding-bottom:14px; border-bottom:1px solid var(--border);}
+  .mock-banner h1{font-size:16px; margin:0; font-weight:700;}
+  .mode-pill{font-family:var(--mono); font-size:11px; color:var(--accent); border:1px solid var(--accent-dim);
+    background:rgba(79,140,255,.12); padding:2px 7px; border-radius:20px;}
+  .mock-banner p{margin:0; color:var(--text-dim); font-size:12px; flex-basis:100%; line-height:1.5;}
+
+  .toolbar{display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap;}
+  .toolbar .lbl{font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-dim);}
+  .seg{display:inline-flex; border:1px solid var(--border); border-radius:7px; overflow:hidden;}
+  .seg button{border:none; background:var(--bg); color:var(--text-dim); font-size:12px; font-weight:600;
+    padding:6px 13px; cursor:pointer;}
+  .seg button + button{border-left:1px solid var(--border);}
+  .seg button.on{background:var(--accent-dim); color:#fff;}
+
+  .stage{display:grid; grid-template-columns:minmax(0,400px) minmax(0,1fr); gap:18px; align-items:start;}
+  @media (max-width:840px){ .stage{grid-template-columns:1fr;} }
+
+  .panel{border:1px solid var(--border); border-radius:var(--radius); background:var(--bg-2); padding:12px;}
+  .panel > h2{margin:0 0 4px; font-size:11px; font-weight:700; text-transform:uppercase;
+    letter-spacing:.08em; color:var(--text-dim);}
+  .panel .sub{margin:0 0 12px; font-size:11px; color:var(--text-dim);}
+  .list{display:flex; flex-direction:column; gap:8px;}
+
+  /* uniform two-line piece row (standalone + linked) */
+  .row{display:flex; flex-direction:column; align-items:stretch; gap:8px; padding:8px 9px;
+    border:1px solid var(--border); border-radius:8px; background:var(--bg-3);}
+  .row-top{display:flex; align-items:center; gap:9px;}
+  .row-top .nm{font-weight:600; flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .push{margin-left:auto;}
+  .row-actions{margin-left:auto; display:flex; align-items:center; gap:6px;}
+  .unlink-piece{display:flex; align-items:center; justify-content:center; width:26px; height:26px; padding:0;
+    border:1px solid var(--border); border-radius:6px; background:var(--bg); color:var(--text-dim); cursor:pointer; flex-shrink:0;}
+  .unlink-piece:hover{color:var(--danger); border-color:var(--danger);}
+  .unlink-piece svg{width:15px; height:15px;}
+  .dd.full{width:100%;}
+  .chk{width:16px; height:16px; border:1px solid var(--border); border-radius:4px; background:var(--bg);
+    cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:var(--accent);}
+  .chk.on{border-color:var(--accent); background:rgba(79,140,255,.14);}
+
+  .eye{display:flex; align-items:center; justify-content:center; width:26px; height:26px; padding:0;
+    border:1px solid var(--border); border-radius:6px; background:var(--bg); color:var(--text-dim);
+    cursor:pointer; flex-shrink:0;}
+  .eye:hover{color:var(--text);}
+  .eye.off{opacity:.45;} .eye.off .lens{display:none;}
+  .eye svg{width:15px; height:15px;}
+
+  /* group */
+  .group{border:1px solid var(--border); border-radius:8px; background:var(--bg-2);
+    position:relative;}
+  .group::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--link);
+    border-radius:8px 0 0 8px;}
+  .group-head.vh{cursor:default;}
+  .group-name-ro{font-weight:700; color:var(--text);}
+  .group-head{display:flex; align-items:center; gap:8px; padding:7px 9px 7px 12px; background:var(--bg-2);
+    border-bottom:1px solid var(--border);}
+  .chain{color:var(--link); display:flex; align-items:center; flex-shrink:0;}
+  .chain svg{width:14px; height:14px;}
+  .group-label{font-weight:700; background:transparent; border:1px solid transparent; border-radius:6px;
+    color:var(--text); padding:3px 6px; font-size:13px; min-width:0; flex:1;}
+  .group-label:hover{border-color:var(--border);}
+  .group-label:focus{outline:none; border-color:var(--accent); background:var(--bg);}
+  .seg.mini button{padding:4px 9px; font-size:11px;}
+  .unlink{border:1px solid var(--border); background:var(--bg); color:var(--text-dim); border-radius:6px;
+    padding:4px 9px; font-size:11px; font-weight:600; cursor:pointer; flex-shrink:0;}
+  .unlink:hover{color:var(--danger); border-color:var(--danger);}
+  .group-body{padding:8px 9px 8px 12px; display:flex; flex-direction:column; gap:7px;}
+  .grouprow{display:flex; align-items:center; gap:9px;}
+  .grouprow .nm{font-weight:600; flex:1;}
+  .parts-tag{font-size:11px; color:var(--text-dim); font-weight:600;}
+  .expander{background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:11px;
+    display:inline-flex; align-items:center; gap:5px; padding:2px 0;}
+  .expander:hover{color:var(--text);}
+  .expander .tw{transition:transform .15s;} .expander.open .tw{transform:rotate(90deg);}
+  .members{display:flex; flex-direction:column; gap:5px; margin-top:2px; padding-left:6px;
+    border-left:1px dashed var(--border);}
+  .member{display:flex; align-items:center; gap:8px; padding:4px 6px;}
+  .member .nm{flex:1; font-weight:500; color:var(--text);}
+  .xform-hint{font-size:10px; color:var(--text-dim); font-style:italic; border:1px solid var(--border);
+    border-radius:5px; padding:2px 6px; white-space:nowrap;}
+  .locked-tag{display:inline-flex; align-items:center; gap:4px; font-size:10px; color:var(--link);
+    border:1px solid #234b46; background:#122320; border-radius:5px; padding:2px 6px; white-space:nowrap;}
+  .locked-tag svg{width:11px; height:11px;}
+
+  /* color dropdown */
+  .sw{position:relative; width:20px; height:20px; border-radius:5px; overflow:hidden; flex-shrink:0;
+    border:1px solid var(--border);
+    background-image:linear-gradient(45deg,#3a4048 25%,transparent 25%),linear-gradient(-45deg,#3a4048 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#3a4048 75%),linear-gradient(-45deg,transparent 75%,#3a4048 75%);
+    background-size:8px 8px; background-position:0 0,0 4px,4px -4px,-4px 0;}
+  .sw .fill{position:absolute; inset:0;}
+  .dd{position:relative; width:150px; flex-shrink:0;}
+  .dd.narrow{width:132px;}
+  .dd > button{width:100%; display:flex; align-items:center; gap:8px; padding:5px 8px;
+    border:1px solid var(--border); border-radius:7px; background:var(--bg); color:var(--text);
+    font-size:12px; cursor:pointer; text-align:left;}
+  .dd > button:hover{border-color:#3d4a58;}
+  .dd > button .cn{flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .dd > button .caret{color:var(--text-dim);}
+  .menu{position:absolute; z-index:30; top:calc(100% + 4px); left:0; width:100%; min-width:150px;
+    background:var(--bg-2); border:1px solid var(--border); border-radius:8px;
+    box-shadow:0 12px 30px rgba(0,0,0,.55); padding:5px; max-height:240px; overflow:auto;}
+  .mi{display:flex; align-items:center; gap:8px; padding:6px 7px; border-radius:6px; cursor:pointer;}
+  .mi:hover{background:var(--bg-3);}
+  .mi .cn{flex:1; white-space:nowrap;}
+  .mi .ck{color:var(--accent);}
+
+  /* link action bar */
+  .linkbar{margin-top:12px; display:flex; align-items:center; gap:10px; padding:9px 11px;
+    border:1px dashed var(--link); border-radius:8px; background:#101d1b; color:var(--text);}
+  .linkbar.hidden{display:none;}
+  .linkbar .txt{flex:1; font-size:12px;}
+  .linkbar .txt b{color:var(--link);}
+  .btn{padding:6px 12px; border:1px solid var(--border); border-radius:7px; background:var(--bg-3);
+    color:var(--text); font-size:12px; font-weight:600; cursor:pointer;}
+  .btn.link-btn{background:#123f39; border-color:var(--link); color:#b9f4ea;}
+  .btn.link-btn:hover{background:#164a43;}
+  .btn:disabled{opacity:.5; cursor:default;}
+  .add-wrap{position:relative;}
+  .add-wrap .menu{width:max-content; min-width:170px;}
+  .hint{margin:12px 2px 0; font-size:11px; color:var(--text-dim); line-height:1.55;}
+  .hint code{font-family:var(--mono); color:var(--text);}
+
+  /* viewport */
+  .viewport{position:relative; height:300px; border:1px solid var(--border); border-radius:var(--radius);
+    background:radial-gradient(circle at 50% 38%,#1a212b,#0c0f13 72%); overflow:hidden;}
+  .vp-tag{position:absolute; top:8px; left:10px; font-size:10px; letter-spacing:.09em;
+    text-transform:uppercase; color:var(--text-dim);}
+  .vp-grid{position:absolute; inset:0;
+    background-image:linear-gradient(#ffffff08 1px,transparent 1px),linear-gradient(90deg,#ffffff08 1px,transparent 1px);
+    background-size:26px 26px; mask-image:radial-gradient(circle at 50% 55%,#000 40%,transparent 78%);}
+  .part{position:absolute; border-radius:9px; box-shadow:0 6px 18px rgba(0,0,0,.5), inset 0 1px 0 #ffffff2a;
+    transition:background .12s; display:flex; align-items:flex-end; justify-content:center;}
+  .part span{font-size:9px; color:#000000aa; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+    background:#ffffffcc; padding:0 4px; border-radius:0 0 3px 3px;}
+  #p_main_chassis{width:150px; height:120px; left:calc(50% - 75px); top:96px;}
+  #p_lid{width:150px; height:26px; left:calc(50% - 75px); top:70px; border-radius:9px 9px 3px 3px;}
+  #p_buttons{width:34px; height:34px; left:calc(50% + 92px); top:120px;}
+  #p_thumbstick{width:46px; height:46px; left:calc(50% - 138px); top:150px; border-radius:50%;}
+  .vp-note{position:absolute; bottom:8px; right:10px; font-size:10px; color:var(--text-dim); font-style:italic;}
+  .legend{margin-top:16px; font-size:11px; color:var(--text-dim); line-height:1.6;}
+  .legend b{color:var(--text);}
+
+  .toast{position:fixed; left:50%; bottom:22px; transform:translateX(-50%) translateY(20px);
+    background:var(--bg-3); border:1px solid var(--border); border-radius:8px; padding:9px 15px;
+    font-weight:600; font-size:12px; box-shadow:0 8px 26px rgba(0,0,0,.5); opacity:0;
+    transition:opacity .2s, transform .2s; pointer-events:none; z-index:60;}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  @media (prefers-reduced-motion:reduce){ *{transition:none !important;} }
+</style>
+
+<div class="wrap">
+  <div class="mock-banner">
+    <h1>3D Colorator</h1><span class="mode-pill">?design</span>
+    <p>Piece linking: linked pieces always share one color. The admin chooses whether a group shows as a single <b>collapsed</b> item or as <b>separate</b> but color-locked rows in the visitor's piece list. Flip <em>View as</em> to see both sides. The viewport is schematic; linked parts always render the same color.</p>
+  </div>
+
+  <div class="toolbar">
+    <span class="lbl">View as</span>
+    <span class="seg" id="view-seg">
+      <button data-view="owner" class="on">Owner (design)</button>
+      <button data-view="visitor">Visitor</button>
+    </span>
+    <span class="lbl" id="view-note" style="text-transform:none; letter-spacing:0;">Authoring controls shown — link, rename, collapse, unlink.</span>
+  </div>
+
+  <div class="stage">
+    <div>
+      <div class="panel">
+        <h2>Pieces</h2>
+        <p class="sub" id="panel-sub"></p>
+        <div class="list" id="piece-list"></div>
+
+        <div class="linkbar hidden" id="linkbar">
+          <span class="txt"><b id="link-count">0</b> selected</span>
+          <span id="add-to-slot"></span>
+          <button class="btn link-btn" id="do-link">🔗 New group</button>
+        </div>
+        <p class="hint" id="owner-hint">Tick pieces, then <b>New group</b> (2+) to link them, or <b>Add to group</b> to drop just the ticked pieces into an existing one — no need to re-tick current members. A group shares one color across every member; <b>Collapsed</b> shows it as one row for visitors, <b>Separate</b> keeps the parts listed but color-locked. Data-wise a group is <code>{ id, label, members[], collapsed, color }</code> and members keep their own transform &amp; visibility.</p>
+      </div>
+    </div>
+
+    <div>
+      <div class="viewport">
+        <span class="vp-tag">Viewport (live)</span>
+        <div class="vp-grid"></div>
+        <div class="part" id="p_thumbstick"><span>Thumbstick</span></div>
+        <div class="part" id="p_lid"><span>Lid</span></div>
+        <div class="part" id="p_main_chassis"><span>Main Chassis</span></div>
+        <div class="part" id="p_buttons"><span>Buttons</span></div>
+        <span class="vp-note">linked parts always share a color · schematic</span>
+      </div>
+      <div class="legend">
+        <b>Try it:</b> in Owner view, change the <em>Shell</em> group's color — Main&nbsp;Chassis + Lid move together · toggle the group between <b>Collapsed</b> and <b>Separate</b> · expand a collapsed group to reach per-part visibility · tick <em>Buttons</em> + <em>Thumbstick</em> and link them · rename or unlink a group · then flip to <b>Visitor</b> to see exactly what the customer's piece list looks like in each mode.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+const EYE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><path class="lens" d="M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>';
+const CHAIN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07l-1.4 1.41"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07l1.4-1.41"/></svg>';
+const UNLINK_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 0 1 3.4 8.6"/><line x1="3" y1="3" x2="21" y2="21"/></svg>';
+
+/* ---------- state ---------- */
+const palette=[
+  {id:"ss_orange",name:"SeedSigner Orange",hex:"#f75403",opacity:1},
+  {id:"purple",   name:"Purple",           hex:"#9a57bd",opacity:1},
+  {id:"green",    name:"Green",            hex:"#00ae42",opacity:1},
+  {id:"black",    name:"Matte Black",      hex:"#111111",opacity:1},
+  {id:"white",    name:"White",            hex:"#ffffff",opacity:1},
+  {id:"smoke",    name:"Smoke",            hex:"#202020",opacity:0.45},
+];
+const pieces=[
+  {id:"main_chassis",label:"Main Chassis",visible:true,color:"ss_orange"},
+  {id:"lid",         label:"Lid",         visible:true,color:"ss_orange"},
+  {id:"buttons",     label:"Buttons",     visible:true,color:"white"},
+  {id:"thumbstick",  label:"Thumbstick",  visible:true,color:"white"},
+];
+const groups=[
+  {id:"shell",label:"Shell",members:["main_chassis","lid"],collapsed:true,color:"ss_orange",expanded:false},
+];
+let view="owner";
+const selected=new Set();
+let groupSeq=2;
+
+/* ---------- helpers ---------- */
+const $=(s,r=document)=>r.querySelector(s);
+const el=(t,c)=>{const e=document.createElement(t); if(c)e.className=c; return e;};
+const piece=id=>pieces.find(p=>p.id===id);
+const color=id=>palette.find(c=>c.id===id);
+const groupOf=id=>groups.find(g=>g.members.includes(id));
+function rgba(c){ if(!c)return"transparent"; const h=c.hex.replace("#",""); const n=parseInt(h,16);
+  return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${c.opacity})`; }
+function effColor(id){ const g=groupOf(id); return g?g.color:piece(id).color; }
+function swatch(id){ const w=el("span","sw"); const f=el("span","fill"); f.style.background=rgba(color(id)); w.appendChild(f); return w; }
+let toastTimer; function toast(m){ const t=$("#toast"); t.textContent=m; t.className="toast show";
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.className="toast",2400); }
+
+/* ---------- color dropdown ---------- */
+function colorDropdown(currentId, onPick, narrow){
+  const dd=el("span","dd"+(narrow?" narrow":""));
+  const btn=el("button");
+  const c=color(currentId);
+  btn.append(swatch(currentId)); const cn=el("span","cn"); cn.textContent=c?c.name:"—"; btn.append(cn);
+  const car=el("span","caret"); car.textContent="▾"; btn.append(car);
+  btn.addEventListener("click",e=>{ e.stopPropagation(); openMenu(); });
+  dd.appendChild(btn);
+  function openMenu(){
+    closeMenus();
+    const menu=el("div","menu");
+    palette.forEach(col=>{
+      const mi=el("div","mi"); mi.append(swatch(col.id));
+      const nm=el("span","cn"); nm.textContent=col.name; mi.append(nm);
+      if(col.id===currentId){ const ck=el("span","ck"); ck.textContent="✓"; mi.append(ck); }
+      mi.addEventListener("click",()=>{ closeMenus(); onPick(col.id); });
+      menu.appendChild(mi);
+    });
+    dd.appendChild(menu);
+    setTimeout(()=>document.addEventListener("pointerdown",closeOnce,{once:true}),0);
+  }
+  return dd;
+}
+function closeMenus(){ document.querySelectorAll(".menu").forEach(m=>m.remove()); }
+function closeOnce(e){ if(!e.target.closest(".menu")&&!e.target.closest(".dd>button")&&!e.target.closest(".add-wrap>button")) closeMenus(); }
+
+function eyeBtn(p){
+  const b=el("button","eye"+(p.visible?"":" off")); b.innerHTML=EYE; b.title="Show / hide";
+  b.addEventListener("click",e=>{ e.stopPropagation(); p.visible=!p.visible; render(); });
+  return b;
+}
+
+/* ---------- render ---------- */
+function render(){
+  const list=$("#piece-list"); list.innerHTML="";
+  $("#panel-sub").textContent = view==="owner"
+    ? "Author the piece list: link parts, name groups, choose how each group appears."
+    : "Exactly what a customer sees and can color.";
+  $("#view-note").textContent = view==="owner"
+    ? "Authoring controls shown — link, rename, collapse, unlink."
+    : "Read-only customer view — color choices only.";
+  $("#owner-hint").style.display = view==="owner"?"":"none";
+
+  const done=new Set();
+  pieces.forEach(p=>{
+    if(done.has(p.id)) return;
+    const g=groupOf(p.id);
+    if(g){ g.members.forEach(m=>done.add(m)); list.appendChild(renderGroup(g)); }
+    else { done.add(p.id); list.appendChild(renderStandalone(p)); }
+  });
+
+  updateLinkbar();
+  paintViewport();
+}
+
+function checkbox(p){
+  const chk=el("span","chk"+(selected.has(p.id)?" on":"")); chk.textContent=selected.has(p.id)?"✓":"";
+  chk.title="Select to link"; chk.addEventListener("click",e=>{ e.stopPropagation();
+    selected.has(p.id)?selected.delete(p.id):selected.add(p.id); render(); });
+  return chk;
+}
+// Pull one piece out of a group without disbanding it. The freed piece keeps
+// whatever color it was showing. Group dissolves only if it drops below 2 members.
+function removeFromGroup(g, id){
+  piece(id).color=g.color;
+  g.members=g.members.filter(m=>m!==id);
+  if(g.members.length<2){
+    const rem=g.members[0]; if(rem) piece(rem).color=g.color;
+    groups.splice(groups.indexOf(g),1);
+    render(); toast("Removed — group dissolved (needs 2+ parts)"); return;
+  }
+  render(); toast("Removed "+piece(id).label+" from "+(g.label||"the group"));
+}
+// Uniform two-line row: [chk] name [ unlink · eye → ] / full-width color dropdown.
+// When the piece belongs to a group, the color control drives the shared group color.
+function pieceRow(p, g){
+  const row=el("div","row");
+  const top=el("div","row-top");
+  if(view==="owner") top.appendChild(checkbox(p));
+  const nm=el("span","nm"); nm.textContent=p.label; top.appendChild(nm);
+  if(view==="owner"){
+    const actions=el("div","row-actions");
+    if(g){
+      const ub=el("button","unlink-piece"); ub.innerHTML=UNLINK_ICON; ub.title="Remove from group";
+      ub.addEventListener("click",e=>{ e.stopPropagation(); removeFromGroup(g,p.id); });
+      actions.appendChild(ub);
+    }
+    actions.appendChild(eyeBtn(p));
+    top.appendChild(actions);
+  }
+  row.appendChild(top);
+  const dd = g
+    ? colorDropdown(g.color, id=>{ g.color=id; syncGroup(g); render(); })
+    : colorDropdown(p.color, id=>{ p.color=id; render(); });
+  dd.classList.add("full");
+  row.appendChild(dd);
+  return row;
+}
+function renderStandalone(p){ return pieceRow(p, null); }
+
+function renderGroup(g){
+  const box=el("div","group");
+  const members=g.members.map(piece);
+
+  if(view==="owner"){
+    const head=el("div","group-head");
+    const chain=el("span","chain"); chain.innerHTML=CHAIN; head.appendChild(chain);
+    const label=el("input","group-label"); label.value=g.label; label.placeholder="Name this group"; label.spellcheck=false;
+    label.addEventListener("input",()=>{ g.label=label.value; });
+    head.appendChild(label);
+    const seg=el("span","seg mini");
+    const bc=el("button"); bc.textContent="Collapsed"; if(g.collapsed)bc.className="on";
+    const bs=el("button"); bs.textContent="Separate"; if(!g.collapsed)bs.className="on";
+    bc.addEventListener("click",()=>{ g.collapsed=true; render(); });
+    bs.addEventListener("click",()=>{ g.collapsed=false; render(); });
+    seg.append(bc,bs); head.appendChild(seg);
+    const un=el("button","unlink"); un.textContent="Unlink"; un.title="Dissolve group";
+    un.addEventListener("click",()=>unlink(g)); head.appendChild(un);
+    box.appendChild(head);
+  } else {
+    // visitor: group name on its own line for BOTH collapsed and separate.
+    // Blank name → show no name (just the chain + part count).
+    const vh=el("div","group-head vh");
+    const chain=el("span","chain"); chain.innerHTML=CHAIN; vh.appendChild(chain);
+    if(g.label){ const nm=el("span","group-name-ro"); nm.textContent=g.label; vh.appendChild(nm); }
+    const tag=el("span","parts-tag"); tag.textContent="("+members.length+" parts)"; vh.appendChild(tag);
+    box.appendChild(vh);
+  }
+
+  const body=el("div","group-body");
+
+  if(g.collapsed){
+    if(view==="owner"){
+      const summary=el("div","row");
+      const top=el("div","row-top");
+      const nm=el("span","nm"); nm.textContent="All parts"; top.appendChild(nm);
+      const tag=el("span","parts-tag"); tag.textContent="("+members.length+" parts)"; top.appendChild(tag);
+      const grpEye=el("button","eye push"+(members.every(m=>m.visible)?"":" off")); grpEye.innerHTML=EYE; grpEye.title="Show / hide all parts";
+      grpEye.addEventListener("click",()=>{ const anyOn=members.some(m=>m.visible); members.forEach(m=>m.visible=!anyOn); render(); });
+      top.appendChild(grpEye);
+      summary.appendChild(top);
+      const dd=colorDropdown(g.color, id=>{ g.color=id; syncGroup(g); render(); }); dd.classList.add("full");
+      summary.appendChild(dd);
+      body.appendChild(summary);
+
+      const exp=el("button","expander"+(g.expanded?" open":"")); exp.innerHTML='<span class="tw">▸</span> per-part visibility &amp; transform';
+      exp.addEventListener("click",()=>{ g.expanded=!g.expanded; render(); });
+      body.appendChild(exp);
+      if(g.expanded){
+        const mem=el("div","members");
+        members.forEach(m=>{
+          const mr=el("div","member");
+          const nm2=el("span","nm"); nm2.textContent=m.label; mr.appendChild(nm2);
+          const ub=el("button","unlink-piece"); ub.innerHTML=UNLINK_ICON; ub.title="Remove from group";
+          ub.addEventListener("click",e=>{ e.stopPropagation(); removeFromGroup(g,m.id); });
+          mr.appendChild(ub);
+          mr.appendChild(eyeBtn(m));
+          const xh=el("span","xform-hint"); xh.textContent="⤢ transform"; mr.appendChild(xh);
+          mem.appendChild(mr);
+        });
+        body.appendChild(mem);
+      }
+    } else {
+      // visitor collapsed: single shared color control; group name is in the header line
+      const dd=colorDropdown(g.color, id=>{ g.color=id; syncGroup(g); render(); }); dd.classList.add("full");
+      body.appendChild(dd);
+    }
+  } else {
+    // separate: every member is a uniform two-line row, color-locked to the group
+    members.forEach(m=> body.appendChild(pieceRow(m, g)) );
+  }
+
+  box.appendChild(body);
+  return box;
+}
+
+function syncGroup(g){ g.members.forEach(id=>{ piece(id).color=g.color; }); }
+
+function unlink(g){
+  syncGroup(g); // members keep the group's current color
+  const i=groups.indexOf(g); if(i>=0) groups.splice(i,1);
+  render(); toast("Unlinked "+g.label+" — parts are separate again");
+}
+
+$("#do-link").addEventListener("click",()=>{
+  const ids=pieces.filter(p=>selected.has(p.id)).map(p=>p.id);
+  if(ids.length<2) return;
+  // pull the selected pieces out of any existing group first
+  groups.forEach(g=>{ g.members=g.members.filter(m=>!ids.includes(m)); });
+  // dissolve any group left with fewer than 2 members (its color stays on the survivor)
+  for(let i=groups.length-1;i>=0;i--){
+    if(groups[i].members.length<2){
+      const rem=groups[i].members[0]; if(rem) piece(rem).color=groups[i].color;
+      groups.splice(i,1);
+    }
+  }
+  const g={id:"group_"+(groupSeq++),label:"",members:ids,collapsed:true,color:piece(ids[0]).color,expanded:false};
+  groups.push(g); syncGroup(g);
+  selected.clear(); render(); toast("Linked "+ids.length+" pieces — name the group in its header");
+});
+
+function updateLinkbar(){
+  const bar=$("#linkbar"); const n=selected.size;
+  bar.classList.toggle("hidden", view!=="owner" || n<1);
+  $("#link-count").textContent=n;
+  const doLink=$("#do-link"); doLink.disabled = n<2; doLink.textContent = n<2 ? "🔗 New group (pick 2+)" : "🔗 New group";
+  const slot=$("#add-to-slot"); slot.innerHTML="";
+  if(groups.length && n>=1){
+    const wrap=el("span","add-wrap");
+    const btn=el("button","btn"); btn.textContent="Add to group ▾";
+    btn.addEventListener("click",e=>{ e.stopPropagation(); openAddToMenu(wrap); });
+    wrap.appendChild(btn); slot.appendChild(wrap);
+  }
+}
+function openAddToMenu(wrap){
+  closeMenus();
+  const ids=[...selected];
+  const menu=el("div","menu");
+  groups.forEach(g=>{
+    const mi=el("div","mi");
+    const chain=el("span","chain"); chain.innerHTML=CHAIN; chain.style.color="var(--link)"; mi.appendChild(chain);
+    const nm=el("span","cn"); nm.textContent=(g.label||"Unnamed group")+" · "+g.members.length+" parts"; mi.appendChild(nm);
+    mi.addEventListener("click",()=>{ closeMenus(); addToGroup(g, ids); });
+    menu.appendChild(mi);
+  });
+  wrap.appendChild(menu);
+  setTimeout(()=>document.addEventListener("pointerdown",closeOnce,{once:true}),0);
+}
+function addToGroup(g, ids){
+  // pull the pieces out of any OTHER group, dissolving one left too small
+  groups.forEach(o=>{ if(o!==g) o.members=o.members.filter(m=>!ids.includes(m)); });
+  for(let i=groups.length-1;i>=0;i--){ const o=groups[i];
+    if(o!==g && o.members.length<2){ const rem=o.members[0]; if(rem) piece(rem).color=o.color; groups.splice(i,1); } }
+  ids.forEach(id=>{ if(!g.members.includes(id)) g.members.push(id); });
+  syncGroup(g); selected.clear(); render();
+  toast("Added "+ids.length+" to "+(g.label||"the group"));
+}
+
+$("#view-seg").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-view]"); if(!b)return;
+  view=b.dataset.view; selected.clear();
+  [...$("#view-seg").children].forEach(x=>x.classList.toggle("on",x===b));
+  render();
+});
+
+function paintViewport(){
+  pieces.forEach(p=>{
+    const node=document.getElementById("p_"+p.id);
+    if(!node) return;
+    node.style.background=rgba(color(effColor(p.id)));
+    node.style.opacity = p.visible ? "1" : "0.12";
+  });
+}
+
+render();
+</script>

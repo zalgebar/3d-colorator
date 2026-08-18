@@ -1,0 +1,373 @@
+<title>3D Colorator — Share Link &amp; Reconciliation mockup</title>
+<style>
+  :root{
+    --bg:#0f1216; --bg-2:#161b21; --bg-3:#1d242c; --border:#2a333d;
+    --text:#d7dde4; --text-dim:#8b96a3; --accent:#4f8cff; --accent-dim:#2f5eb5;
+    --danger:#ff5c5c; --link:#37c8b4; --warn:#ffd27a; --radius:8px;
+    --mono:"SF Mono",Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:"Segoe UI",system-ui,-apple-system,sans-serif; font-size:13px;
+    color:var(--text); background:radial-gradient(1200px 700px at 20% -10%,#141a22,#0b0e12 60%); -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1180px; margin:0 auto; padding:22px 20px 60px;}
+  .mock-banner{display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; margin-bottom:16px; padding-bottom:14px; border-bottom:1px solid var(--border);}
+  .mock-banner h1{font-size:16px; margin:0; font-weight:700;}
+  .mode-pill{font-family:var(--mono); font-size:11px; color:var(--accent); border:1px solid var(--accent-dim); background:rgba(79,140,255,.12); padding:2px 7px; border-radius:20px;}
+  .mock-banner p{margin:0; color:var(--text-dim); font-size:12px; flex-basis:100%; line-height:1.5;}
+
+  .stage{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:18px; align-items:start;}
+  @media (max-width:860px){ .stage{grid-template-columns:1fr;} }
+  .panel{border:1px solid var(--border); border-radius:var(--radius); background:var(--bg-2); padding:12px; margin-bottom:16px;}
+  .panel h2{margin:0 0 3px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text-dim);}
+  .panel h2 .step{color:var(--accent); margin-right:5px;}
+  .panel .sub{margin:0 0 12px; font-size:11px; color:var(--text-dim); line-height:1.5;}
+
+  .prow{display:flex; align-items:center; gap:10px; padding:7px 0; border-top:1px solid var(--border);}
+  .prow:first-of-type{border-top:none;}
+  .prow .pn{width:104px; font-weight:600; flex-shrink:0;}
+
+  .sw{position:relative; width:20px; height:20px; border-radius:5px; overflow:hidden; flex-shrink:0; border:1px solid var(--border);
+    background-image:linear-gradient(45deg,#3a4048 25%,transparent 25%),linear-gradient(-45deg,#3a4048 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#3a4048 75%),linear-gradient(-45deg,transparent 75%,#3a4048 75%);
+    background-size:8px 8px; background-position:0 0,0 4px,4px -4px,-4px 0;}
+  .sw .fill{position:absolute; inset:0;}
+  .dd{position:relative; flex:1;}
+  .dd > button{width:100%; display:flex; align-items:center; gap:8px; padding:5px 8px; border:1px solid var(--border); border-radius:7px; background:var(--bg); color:var(--text); font-size:12px; cursor:pointer; text-align:left;}
+  .dd > button:hover{border-color:#3d4a58;} .dd > button .cn{flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;} .dd > button .caret{color:var(--text-dim);}
+  .menu{position:absolute; z-index:30; top:calc(100% + 4px); left:0; width:100%; background:var(--bg-2); border:1px solid var(--border); border-radius:8px; box-shadow:0 12px 30px rgba(0,0,0,.55); padding:5px; max-height:230px; overflow:auto;}
+  .mi{display:flex; align-items:center; gap:8px; padding:6px 7px; border-radius:6px; cursor:pointer;} .mi:hover{background:var(--bg-3);} .mi .cn{flex:1; white-space:nowrap;} .mi .ck{color:var(--accent);}
+
+  .urlbox{font-family:var(--mono); font-size:11px; word-break:break-all; background:var(--bg); border:1px solid var(--border); border-radius:7px; padding:9px 10px; color:var(--text-dim); line-height:1.6; margin-top:12px;}
+  .urlbox b{color:var(--text);} .urlbox .k{color:var(--accent);}
+  .btnrow{display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;}
+  .btn{padding:7px 12px; border:1px solid var(--border); border-radius:7px; background:var(--bg-3); color:var(--text); font-size:12px; font-weight:600; cursor:pointer;}
+  .btn:hover{border-color:#3d4a58;} .btn.primary{background:var(--accent-dim); border-color:var(--accent); color:#fff;} .btn.primary:hover{background:var(--accent);}
+
+  .check{display:flex; align-items:flex-start; gap:9px; padding:8px 0; border-top:1px solid var(--border); cursor:pointer;}
+  .check:first-of-type{border-top:none;}
+  .check input{margin-top:2px; accent-color:var(--accent); flex-shrink:0;}
+  .check .ct{font-size:12px; line-height:1.4;} .check .ct b{color:var(--text);} .check .ct .why{color:var(--text-dim); display:block; font-size:11px; margin-top:1px;}
+  .cat-ok{color:var(--warn) !important;} .cat-no{color:var(--text-dim) !important;}
+
+  .urlin{width:100%; font-family:var(--mono); font-size:11px; padding:9px 10px; border:1px solid var(--border); border-radius:7px; background:var(--bg); color:var(--text); line-height:1.5;}
+  .urlin:focus{outline:none; border-color:var(--accent);}
+  .fieldnote{font-size:10px; color:var(--text-dim); margin:5px 2px 0;}
+
+  .banner{border-radius:8px; padding:10px 12px; font-size:12px; line-height:1.5; margin-top:12px; display:none;}
+  .banner.show{display:block;}
+  .banner.warn{border:1px solid #6b5a12; background:#241f0d; color:var(--warn);}
+  .banner.ok{border:1px solid #234b46; background:#122320; color:#8ef0df;}
+  .banner .hd{font-weight:700; display:flex; align-items:center; gap:6px;}
+  .banner .close{margin-left:auto; cursor:pointer; opacity:.7; border:none; background:none; color:inherit; font-size:14px;}
+  .banner ul{margin:7px 0 0; padding-left:2px; list-style:none;} .banner li{margin:4px 0; padding-left:14px; position:relative;}
+  .banner li::before{content:"•"; position:absolute; left:2px;}
+
+  .maplist{margin-top:12px;}
+  .map-row{display:flex; align-items:center; gap:8px; padding:8px 0; border-top:1px solid var(--border); font-size:12px;}
+  .map-row:first-child{border-top:none;}
+  .map-name{width:104px; font-weight:600; flex-shrink:0;}
+  .chipc{display:inline-flex; align-items:center; gap:6px; min-width:0;} .chipc .cn{white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .arrow{color:var(--text-dim); flex-shrink:0;}
+  .tag{margin-left:auto; font-size:10px; font-weight:700; border-radius:5px; padding:2px 7px; white-space:nowrap; flex-shrink:0;}
+  .tag.applied{color:#8ef0df; border:1px solid #234b46; background:#122320;}
+  .tag.reconciled{color:var(--warn); border:1px solid #6b5a12; background:#241f0d;}
+  .empty{font-size:12px; color:var(--text-dim); padding:14px 2px; text-align:center; font-style:italic;}
+
+  .viewport{position:relative; height:270px; border:1px solid var(--border); border-radius:var(--radius);
+    background:radial-gradient(circle at 50% 42%,#1a212b,#0c0f13 72%); overflow:hidden; margin-bottom:16px; display:flex; align-items:center; justify-content:center;}
+  .vp-tag{position:absolute; top:8px; left:10px; font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--text-dim);}
+  .vp-grid{position:absolute; inset:0; background-image:linear-gradient(#ffffff08 1px,transparent 1px),linear-gradient(90deg,#ffffff08 1px,transparent 1px); background-size:24px 24px; mask-image:radial-gradient(circle at 50% 55%,#000 45%,transparent 80%);}
+  .stage3d{position:relative; width:360px; height:230px; flex-shrink:0;}
+  .part{position:absolute; box-shadow:0 6px 18px rgba(0,0,0,.5), inset 0 1px 0 #ffffff2a; transition:background .15s; display:flex; align-items:flex-end; justify-content:center;}
+  .part span{font-size:8px; color:#000000aa; font-weight:700; text-transform:uppercase; background:#ffffffcc; padding:0 3px; border-radius:0 0 3px 3px;}
+  #v_main_chassis{width:120px; height:96px; left:120px; top:92px; border-radius:8px;}
+  #v_lid{width:120px; height:20px; left:120px; top:70px; border-radius:8px 8px 2px 2px;}
+  #v_buttons{width:28px; height:28px; left:262px; top:118px; border-radius:6px;}
+  #v_thumbstick{width:38px; height:38px; left:36px; top:126px; border-radius:50%;}
+  .tip{margin:0; font-size:11px; color:var(--text-dim); line-height:1.55;} .tip code{font-family:var(--mono); color:var(--text);} .tip b{color:var(--text);}
+
+  .toast{position:fixed; left:50%; bottom:22px; transform:translateX(-50%) translateY(20px); background:var(--bg-3); border:1px solid var(--border); border-radius:8px; padding:9px 15px; font-weight:600; font-size:12px; box-shadow:0 8px 26px rgba(0,0,0,.5); opacity:0; transition:opacity .2s, transform .2s; pointer-events:none; z-index:60;}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  dialog{border:1px solid var(--border); border-radius:12px; background:var(--bg-2); color:var(--text); width:min(470px,92vw); padding:16px; box-shadow:0 16px 50px rgba(0,0,0,.6);}
+  dialog::backdrop{background:rgba(0,0,0,.6);}
+  dialog h3{margin:0 0 6px; font-size:14px; color:var(--warn);}
+  dialog > p{margin:0 0 8px; font-size:12px; color:var(--text-dim); line-height:1.5;}
+  .recon-row{display:flex; flex-direction:column; gap:7px; padding:11px 0; border-top:1px solid var(--border);}
+  .recon-row:first-child{border-top:none;}
+  .recon-head{display:flex; align-items:center; gap:10px;}
+  .recon-name{font-weight:700;}
+  .chipc.muted{margin-left:auto; color:var(--text-dim); font-size:11px;}
+  .recon-reason{font-size:11px; color:var(--warn);}
+  .recon-row .dd{width:100%;}
+  .dlg-actions{display:flex; justify-content:flex-end; gap:8px; margin-top:14px;}
+  @media (prefers-reduced-motion:reduce){ *{transition:none !important;} }
+</style>
+
+<div class="wrap">
+  <div class="mock-banner">
+    <h1>3D Colorator</h1><span class="mode-pill">share link</span>
+    <p>Share links carry palette <b>ids</b>, not raw hex — the catalog is the source of truth. An id that can't be used is always <b>detectable</b> and pops a dialog; whether we can suggest a replacement depends on whether the color still exists. What's <b>invisible</b> is a color re-mixed under the same id — the link stores no snapshot, so there's nothing to diff. Compose, change the catalog, then open the link.</p>
+  </div>
+
+  <div class="stage">
+    <div>
+      <div class="panel">
+        <h2><span class="step">1 ·</span> Compose &amp; share</h2>
+        <p class="sub">Pick a color for each piece (only from what that piece offers), then share the generated link.</p>
+        <div id="compose-list"></div>
+        <div class="urlbox" id="urlbox"></div>
+        <div class="btnrow"><button class="btn primary" id="copy-link">Copy link</button></div>
+      </div>
+
+      <div class="panel">
+        <h2><span class="step">2 ·</span> Catalog changed since you shared</h2>
+        <p class="sub">Simulate the shop editing its palette after the link went out — this is the recipient's <em>newer</em> catalog. The first two pop the dialog; the third can't be seen at all.</p>
+        <label class="check"><input type="checkbox" id="t-lidpurple"><span class="ct"><b class="cat-ok">Dialog · Lid stops offering “Purple”</b><span class="why">The id still resolves, so we know its color and can pre-pick the nearest one that <em>is</em> offered.</span></span></label>
+        <label class="check"><input type="checkbox" id="t-discontinue"><span class="ct"><b class="cat-ok">Dialog · Discontinue “Smoke”</b><span class="why">The unknown id <em>is</em> detectable — but with no color behind it there's nothing to match, so the dialog asks you to choose.</span></span></label>
+        <label class="check"><input type="checkbox" id="t-recolor"><span class="ct"><b class="cat-no">Undetectable · Re-mix “Smoke” (teal, 85%)</b><span class="why">Same id, new hex/opacity. The link stored no snapshot, so this applies silently — and that's intended: the catalog is the source of truth.</span></span></label>
+      </div>
+    </div>
+
+    <div>
+      <div class="viewport">
+        <span class="vp-tag">Recipient's view</span>
+        <div class="vp-grid"></div>
+        <div class="stage3d">
+          <div class="part" id="v_thumbstick"><span>Thumb</span></div>
+          <div class="part" id="v_lid"><span>Lid</span></div>
+          <div class="part" id="v_main_chassis"><span>Chassis</span></div>
+          <div class="part" id="v_buttons"><span>Btn</span></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2><span class="step">3 ·</span> Open the shared link</h2>
+        <p class="sub">On the recipient's device. Any unusable color pops the dialog — pre-picked when we still know the color, your choice when we don't. Edit the URL by hand too — try an id like <code style="font-family:var(--mono)">nope</code>.</p>
+        <input class="urlin" id="open-url" spellcheck="false">
+        <p class="fieldnote">Auto-filled from your composed link. <a href="#" id="resync" style="color:var(--accent)">Reset to my link</a></p>
+        <div class="btnrow"><button class="btn primary" id="open-link">Open link →</button></div>
+        <div class="banner" id="banner"></div>
+        <div class="maplist" id="maplist"><p class="empty">Open a link to see how each shared color resolves.</p></div>
+        <p class="tip" style="margin-top:12px"><b>Detecting vs. matching:</b> an unusable id is always detectable — either it's missing from the catalog or it isn't offered for that piece. Suggesting a replacement is the part that needs the color to still exist. A re-mixed color is the one true blind spot: it applies under its id, which is intended since the catalog is the source of truth. Future: a paid off-palette request rides as <code>piece=~ff00ff</code>.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<dialog id="recon-dialog">
+  <h3>⚠ <span id="recon-count"></span></h3>
+  <p>Pick a replacement for each. Where we still know the shared color, the nearest offered one is pre-selected; where the color is gone from the catalog, there's nothing to match — so it's your call.</p>
+  <div id="recon-list"></div>
+  <div class="dlg-actions">
+    <button class="btn" id="recon-cancel">Cancel</button>
+    <button class="btn primary" id="recon-apply">Apply colors</button>
+  </div>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+const PRINT_ID="open_pill_mini_w_coverplate";
+const BASE=[
+  {id:"ss_orange",name:"SeedSigner Orange",hex:"#f75403",opacity:1},
+  {id:"purple",   name:"Purple",           hex:"#9a57bd",opacity:1},
+  {id:"red",      name:"Red",              hex:"#eb3a3a",opacity:1},
+  {id:"green",    name:"Green",            hex:"#00ae42",opacity:1},
+  {id:"black",    name:"Matte Black",      hex:"#111111",opacity:1},
+  {id:"white",    name:"White",            hex:"#ffffff",opacity:1},
+  {id:"smoke",    name:"Smoke",            hex:"#202020",opacity:0.45},
+];
+const pieces=[
+  {id:"main_chassis",label:"Main Chassis",def:"ss_orange",offers:["ss_orange","purple","red","green","black","white","smoke"]},
+  {id:"lid",         label:"Lid",         def:"ss_orange",offers:["ss_orange","purple","smoke","black"]},
+  {id:"buttons",     label:"Buttons",     def:"white",    offers:["white","black","ss_orange"]},
+  {id:"thumbstick",  label:"Thumbstick",  def:"white",    offers:["white","black","smoke"]},
+];
+// a starting coloring chosen so the catalog toggles actually bite
+const composed={ main_chassis:"ss_orange", lid:"purple", buttons:"white", thumbstick:"smoke" };
+const toggles={ discontinue:false, recolor:false, lidpurple:false };
+let fieldEdited=false;
+
+const $=(s,r=document)=>r.querySelector(s);
+const el=(t,c)=>{const e=document.createElement(t); if(c)e.className=c; return e;};
+const baseColor=id=>BASE.find(c=>c.id===id);
+function rgba(c){ if(!c)return"transparent"; const h=c.hex.replace("#",""); const n=parseInt(h,16); return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${c.opacity})`; }
+function swatch(c){ const w=el("span","sw"); const f=el("span","fill"); f.style.background=rgba(c); w.appendChild(f); return w; }
+let toastTimer; function toast(m){ const t=$("#toast"); t.textContent=m; t.className="toast show"; clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.className="toast",2400); }
+
+/* effective (recipient) catalog = BASE with the active toggles applied */
+function effPalette(){
+  return BASE.filter(c=>!(toggles.discontinue && c.id==="smoke"))
+             .map(c=> (toggles.recolor && c.id==="smoke") ? {...c,hex:"#1f7f74",opacity:0.85} : c);
+}
+function effColor(id){ return effPalette().find(c=>c.id===id); }
+function offersEff(pieceId){
+  const p=pieces.find(x=>x.id===pieceId);
+  return p.offers.filter(id=>{
+    if(toggles.discontinue && id==="smoke") return false;
+    if(toggles.lidpurple && pieceId==="lid" && id==="purple") return false;
+    return true;
+  });
+}
+
+/* ---------- compose ---------- */
+function colorDropdown(currentId, optionIds, onPick, lookup){
+  lookup=lookup||baseColor;
+  const dd=el("span","dd"); const btn=el("button"); const c=lookup(currentId);
+  btn.append(swatch(c)); const cn=el("span","cn"); cn.textContent=c?c.name:"—"; btn.append(cn);
+  const car=el("span","caret"); car.textContent="▾"; btn.append(car);
+  btn.addEventListener("click",e=>{ e.stopPropagation(); closeMenus(); const menu=el("div","menu");
+    optionIds.forEach(id=>{ const col=lookup(id); const mi=el("div","mi"); mi.append(swatch(col));
+      const nm=el("span","cn"); nm.textContent=col?col.name:id; mi.append(nm);
+      if(id===currentId){ const ck=el("span","ck"); ck.textContent="✓"; mi.append(ck); }
+      mi.addEventListener("click",()=>{ closeMenus(); onPick(id); }); menu.appendChild(mi); });
+    dd.appendChild(menu); setTimeout(()=>document.addEventListener("pointerdown",closeOnce,{once:true}),0); });
+  dd.appendChild(btn); return dd;
+}
+function closeMenus(){ document.querySelectorAll(".menu").forEach(m=>m.remove()); }
+function closeOnce(e){ if(!e.target.closest(".menu")&&!e.target.closest(".dd>button")) closeMenus(); }
+
+function renderCompose(){
+  const list=$("#compose-list"); list.innerHTML="";
+  pieces.forEach(p=>{
+    const row=el("div","prow");
+    const nm=el("span","pn"); nm.textContent=p.label; row.appendChild(nm);
+    row.appendChild(colorDropdown(composed[p.id], p.offers, id=>{ composed[p.id]=id; renderCompose(); renderUrl(); syncField(); }));
+    list.appendChild(row);
+  });
+}
+function composedLink(){
+  const parts=["print="+PRINT_ID]; pieces.forEach(p=> parts.push(p.id+"="+composed[p.id]));
+  return "https://zalgebar.com/print-coloring?"+parts.join("&");
+}
+function renderUrl(){
+  const box=$("#urlbox");
+  const params=["<span class='k'>print</span>=<b>"+PRINT_ID+"</b>"]
+    .concat(pieces.map(p=>"<span class='k'>"+p.id+"</span>=<b>"+composed[p.id]+"</b>"));
+  box.innerHTML="…/print-coloring?"+params.join("&amp;");
+}
+function syncField(){ if(!fieldEdited) $("#open-url").value=composedLink(); }
+
+/* ---------- open + reconcile ---------- */
+function rgbOf(hex){ const h=(hex||"#888888").replace("#",""); const n=parseInt(h.length===3?h.split("").map(x=>x+x).join(""):h,16); return [(n>>16)&255,(n>>8)&255,n&255]; }
+function dist(a,b){ return Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]); }
+function nearest(targetHex, offeredIds){ const t=rgbOf(targetHex); let best=offeredIds[0]||null,bd=Infinity;
+  offeredIds.forEach(id=>{ const c=effColor(id); if(!c)return; const d=dist(t,rgbOf(c.hex)); if(d<bd){bd=d;best=id;} }); return best; }
+
+// Only the recipient's CURRENT catalog is knowable here — the link carries no snapshot.
+// applied   : id resolves and is offered → use it (even if its hex/opacity was re-mixed)
+// reconciled: id resolves but isn't offered for this piece → dialog, nearest offered pre-picked
+// unknown   : id isn't in the catalog → detectable, but nothing to match on → dialog, no auto-pick
+function openLink(){
+  const raw=$("#open-url").value.trim();
+  const q=raw.includes("?")?raw.slice(raw.indexOf("?")+1):raw;
+  const params=new URLSearchParams(q);
+  const applied={}; const mapping=[]; const errors=[];
+  pieces.forEach(p=>{
+    const requested=params.get(p.id);
+    if(!requested){ applied[p.id]=p.def; mapping.push({p,requested:null,status:"applied"}); return; }
+    const known=!!effColor(requested), offered=offersEff(p.id).includes(requested);
+    const offeredIds=offersEff(p.id);
+    if(known && offered){
+      applied[p.id]=requested; mapping.push({p,requested,status:"applied"});
+    }else if(known){
+      const near=nearest(effColor(requested).hex, offeredIds)||p.def;
+      applied[p.id]=near; mapping.push({p,requested,status:"reconciled"});
+      errors.push({p, requested, offeredIds, chosen:near, kind:"unoffered"});
+    }else{
+      // detectable, but unmatched: start from the piece default and let them choose
+      const start=offeredIds.includes(p.def)?p.def:offeredIds[0];
+      applied[p.id]=start; mapping.push({p,requested,status:"unknown"});
+      errors.push({p, requested, offeredIds, chosen:start, kind:"unknown"});
+    }
+  });
+  if(errors.length) openReconDialog(errors, ()=>{ errors.forEach(er=>{ applied[er.p.id]=er.chosen; }); finalize(applied,mapping); });
+  else finalize(applied,mapping);
+}
+function finalize(applied,mapping){ paintViewport(applied); renderBanner(mapping); renderSummary(applied,mapping); }
+
+function renderBanner(mapping){
+  const b=$("#banner");
+  const unknown=mapping.filter(m=>m.status==="unknown").length;
+  const fixed=mapping.filter(m=>m.status==="reconciled").length;
+  const bits=[];
+  if(fixed) bits.push(fixed+" not offered for its piece — swapped to the nearest offered color");
+  if(unknown) bits.push(unknown+" no longer in the catalog — replacement chosen by you");
+  if(bits.length){
+    b.className="banner warn show";
+    b.innerHTML="<div class='hd'>Opened with changes<button class='close' title='Dismiss'>×</button></div><ul>"
+      +bits.map(t=>"<li>"+t+"</li>").join("")+"</ul>";
+  }else{
+    b.className="banner ok show";
+    b.innerHTML="<div class='hd'>✓ Every shared color is still offered<button class='close' title='Dismiss'>×</button></div>";
+  }
+  b.querySelector(".close").addEventListener("click",()=>b.classList.remove("show"));
+}
+function renderSummary(applied,mapping){
+  const list=$("#maplist"); list.innerHTML="";
+  mapping.forEach(m=>{
+    const row=el("div","map-row");
+    const nm=el("span","map-name"); nm.textContent=m.p.label; row.appendChild(nm);
+    // the "shared" side can only be shown for ids the catalog still knows
+    const reqC=m.requested?effColor(m.requested):null;
+    const req=el("span","chipc");
+    if(m.status==="unknown"){ const q=el("span","cn"); q.textContent="“"+m.requested+"” (unknown id)"; q.style.color="var(--text-dim)"; req.append(q); }
+    else { req.append(swatch(reqC)); const rn=el("span","cn"); rn.textContent=reqC?reqC.name:"default"; req.append(rn); }
+    row.appendChild(req);
+    const ar=el("span","arrow"); ar.textContent="→"; row.appendChild(ar);
+    const appC=effColor(applied[m.p.id]); const app=el("span","chipc"); app.append(swatch(appC)); const an=el("span","cn"); an.textContent=appC?appC.name:applied[m.p.id]; app.append(an); row.appendChild(app);
+    const tag=el("span","tag "+(m.status==="unknown"?"reconciled":m.status));
+    tag.textContent = m.status==="reconciled"?"adjusted":m.status==="unknown"?"replaced":"applied";
+    row.appendChild(tag);
+    list.appendChild(row);
+  });
+}
+
+function openReconDialog(errors, onApply){
+  $("#recon-count").textContent = errors.length+" shared color"+(errors.length>1?"s couldn't be used":" couldn't be used");
+  const list=$("#recon-list");
+  function draw(){
+    list.innerHTML="";
+    errors.forEach(er=>{
+      const row=el("div","recon-row");
+      const head=el("div","recon-head");
+      const nm=el("span","recon-name"); nm.textContent=er.p.label; head.appendChild(nm);
+      const req=el("span","chipc muted");
+      if(er.kind==="unoffered"){ const reqC=effColor(er.requested); req.append(swatch(reqC)); const rn=el("span","cn"); rn.textContent="shared: "+(reqC?reqC.name:er.requested); req.append(rn); }
+      else { const rn=el("span","cn"); rn.textContent="shared: “"+er.requested+"”"; req.append(rn); }
+      head.appendChild(req);
+      row.appendChild(head);
+      const reason=el("div","recon-reason");
+      reason.textContent = er.kind==="unoffered"
+        ? "✕ not offered for this piece — nearest offered color picked:"
+        : "✕ no longer in the catalog — we can't match a color to it, so choose one:";
+      row.appendChild(reason);
+      row.appendChild(colorDropdown(er.chosen, er.offeredIds, id=>{ er.chosen=id; draw(); }, effColor));
+      list.appendChild(row);
+    });
+  }
+  draw();
+  const dlg=$("#recon-dialog");
+  $("#recon-apply").onclick=()=>{ dlg.close(); onApply(); };
+  $("#recon-cancel").onclick=()=>{ dlg.close(); toast("Reverted — nothing applied"); };
+  dlg.showModal();
+}
+function paintViewport(applied){
+  pieces.forEach(p=>{ const node=$("#v_"+p.id); if(node) node.style.background=rgba(effColor(applied[p.id])); });
+}
+
+/* ---------- wire ---------- */
+$("#copy-link").addEventListener("click",()=>{ const t=composedLink();
+  (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast("Link copied")).catch(()=>toast("Copy failed — select the URL manually")); });
+$("#open-link").addEventListener("click",openLink);
+$("#open-url").addEventListener("input",()=>{ fieldEdited=true; });
+$("#resync").addEventListener("click",e=>{ e.preventDefault(); fieldEdited=false; syncField(); toast("Reset to your composed link"); });
+$("#t-discontinue").addEventListener("change",e=>{ toggles.discontinue=e.target.checked; });
+$("#t-recolor").addEventListener("change",e=>{ toggles.recolor=e.target.checked; });
+$("#t-lidpurple").addEventListener("change",e=>{ toggles.lidpurple=e.target.checked; });
+
+renderCompose(); renderUrl(); syncField();
+// prime the recipient viewport at piece defaults (before any link is opened)
+paintViewport(Object.fromEntries(pieces.map(p=>[p.id,p.def])));
+</script>

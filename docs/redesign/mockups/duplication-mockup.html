@@ -1,0 +1,342 @@
+<title>3D Colorator — STL Duplication mockup</title>
+<style>
+  :root{
+    --bg:#0f1216; --bg-2:#161b21; --bg-3:#1d242c; --border:#2a333d;
+    --text:#d7dde4; --text-dim:#8b96a3; --accent:#4f8cff; --accent-dim:#2f5eb5;
+    --danger:#ff5c5c; --link:#37c8b4; --radius:8px;
+    --mono:"SF Mono",Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; font-family:"Segoe UI",system-ui,-apple-system,sans-serif; font-size:13px;
+    color:var(--text); background:radial-gradient(1200px 700px at 20% -10%,#141a22,#0b0e12 60%);
+    -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1180px; margin:0 auto; padding:22px 20px 60px;}
+  .mock-banner{display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; margin-bottom:16px;
+    padding-bottom:14px; border-bottom:1px solid var(--border);}
+  .mock-banner h1{font-size:16px; margin:0; font-weight:700;}
+  .mode-pill{font-family:var(--mono); font-size:11px; color:var(--accent); border:1px solid var(--accent-dim);
+    background:rgba(79,140,255,.12); padding:2px 7px; border-radius:20px;}
+  .mock-banner p{margin:0; color:var(--text-dim); font-size:12px; flex-basis:100%; line-height:1.5;}
+
+  .stage{display:grid; grid-template-columns:minmax(0,410px) minmax(0,1fr); gap:18px; align-items:start;}
+  @media (max-width:860px){ .stage{grid-template-columns:1fr;} }
+  .panel{border:1px solid var(--border); border-radius:var(--radius); background:var(--bg-2); padding:12px;}
+  .panel > h2{margin:0 0 4px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-dim);}
+  .panel .sub{margin:0 0 12px; font-size:11px; color:var(--text-dim);}
+  .list{display:flex; flex-direction:column; gap:8px;}
+
+  .prow{display:flex; flex-direction:column; gap:8px; padding:8px 9px; border:1px solid var(--border);
+    border-radius:8px; background:var(--bg-3); cursor:pointer;}
+  .prow.sel{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent);}
+  .prow-top{display:flex; align-items:center; gap:8px;}
+  .plabel{font-weight:600; background:transparent; border:1px solid transparent; border-radius:6px;
+    color:var(--text); padding:4px 6px; font-size:13px; flex:1; min-width:0;}
+  .plabel:hover{border-color:var(--border);}
+  .plabel:focus{outline:none; border-color:var(--accent); background:var(--bg);}
+  .stl-chip{display:inline-flex; align-items:center; gap:4px; font-family:var(--mono); font-size:10px;
+    color:var(--text-dim); border:1px solid var(--border); background:var(--bg); border-radius:5px;
+    padding:2px 6px; white-space:nowrap; flex-shrink:0;}
+  .stl-chip svg{width:11px; height:11px;}
+  .inst{display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:700; color:var(--accent);
+    border:1px solid var(--accent-dim); background:rgba(79,140,255,.12); border-radius:5px; padding:2px 6px;
+    white-space:nowrap; flex-shrink:0; font-variant-numeric:tabular-nums;}
+  .linkbadge{display:inline-flex; align-items:center; gap:3px; font-size:10px; font-weight:700; color:var(--link);
+    border:1px solid #234b46; background:#122320; border-radius:5px; padding:2px 6px; white-space:nowrap; flex-shrink:0;}
+  .linkbadge svg{width:11px; height:11px;}
+  .row-actions{display:flex; align-items:center; gap:6px; margin-left:auto; flex-shrink:0;}
+  .icon-btn{display:flex; align-items:center; justify-content:center; width:28px; height:28px; padding:0;
+    border:1px solid var(--border); border-radius:6px; background:var(--bg); color:var(--text-dim); cursor:pointer;}
+  .icon-btn:hover{color:var(--text); border-color:#3d4a58;}
+  .icon-btn.dup:hover{color:var(--accent); border-color:var(--accent);}
+  .icon-btn.del:hover{color:var(--danger); border-color:var(--danger);}
+  .icon-btn:disabled{opacity:.35; cursor:default;}
+  .icon-btn svg{width:15px; height:15px;}
+
+  .sw{position:relative; width:20px; height:20px; border-radius:5px; overflow:hidden; flex-shrink:0; border:1px solid var(--border);
+    background-image:linear-gradient(45deg,#3a4048 25%,transparent 25%),linear-gradient(-45deg,#3a4048 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#3a4048 75%),linear-gradient(-45deg,transparent 75%,#3a4048 75%);
+    background-size:8px 8px; background-position:0 0,0 4px,4px -4px,-4px 0;}
+  .sw .fill{position:absolute; inset:0;}
+  .dd{position:relative; width:100%;}
+  .dd > button{width:100%; display:flex; align-items:center; gap:8px; padding:5px 8px; border:1px solid var(--border);
+    border-radius:7px; background:var(--bg); color:var(--text); font-size:12px; cursor:pointer; text-align:left;}
+  .dd > button:hover{border-color:#3d4a58;}
+  .dd > button .cn{flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .dd > button .caret{color:var(--text-dim);}
+  .menu{position:absolute; z-index:30; top:calc(100% + 4px); left:0; width:100%; background:var(--bg-2);
+    border:1px solid var(--border); border-radius:8px; box-shadow:0 12px 30px rgba(0,0,0,.55); padding:5px; max-height:240px; overflow:auto;}
+  .mi{display:flex; align-items:center; gap:8px; padding:6px 7px; border-radius:6px; cursor:pointer;}
+  .mi:hover{background:var(--bg-3);} .mi .cn{flex:1; white-space:nowrap;} .mi .ck{color:var(--accent);}
+
+  .tip{margin:12px 2px 0; font-size:11px; color:var(--text-dim); line-height:1.55;}
+  .tip b{color:var(--text);} .tip code{font-family:var(--mono); color:var(--text);}
+
+  .viewport{position:relative; height:340px; border:1px solid var(--border); border-radius:var(--radius);
+    background:radial-gradient(circle at 50% 42%,#1a212b,#0c0f13 72%); overflow:hidden;
+    display:flex; align-items:center; justify-content:center;}
+  .vp-tag{position:absolute; top:8px; left:10px; font-size:10px; letter-spacing:.09em; text-transform:uppercase; color:var(--text-dim);}
+  .vp-grid{position:absolute; inset:0; background-image:linear-gradient(#ffffff08 1px,transparent 1px),linear-gradient(90deg,#ffffff08 1px,transparent 1px);
+    background-size:26px 26px; mask-image:radial-gradient(circle at 50% 55%,#000 45%,transparent 80%);}
+  .stage3d{position:relative; width:440px; height:280px; flex-shrink:0;}
+  .part3{position:absolute; box-shadow:0 6px 18px rgba(0,0,0,.5), inset 0 1px 0 #ffffff2a; cursor:grab;
+    transition:outline-color .1s; outline:2px solid transparent; outline-offset:2px;
+    display:flex; align-items:flex-end; justify-content:center; touch-action:none;}
+  .part3.dragging{cursor:grabbing;} .part3.sel{outline-color:var(--accent);}
+  .part3 span{font-size:9px; color:#000000aa; font-weight:700; text-transform:uppercase; letter-spacing:.04em;
+    background:#ffffffcc; padding:0 4px; border-radius:0 0 3px 3px; pointer-events:none; white-space:nowrap;}
+  .vp-note{position:absolute; bottom:8px; right:10px; font-size:10px; color:var(--text-dim); font-style:italic;}
+  .legend{margin-top:16px; font-size:11px; color:var(--text-dim); line-height:1.6;} .legend b{color:var(--text);}
+
+  .toast{position:fixed; left:50%; bottom:22px; transform:translateX(-50%) translateY(20px); background:var(--bg-3);
+    border:1px solid var(--border); border-radius:8px; padding:9px 15px; font-weight:600; font-size:12px;
+    box-shadow:0 8px 26px rgba(0,0,0,.5); opacity:0; transition:opacity .2s, transform .2s; pointer-events:none; z-index:60;}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  dialog{border:1px solid var(--border); border-radius:12px; background:var(--bg-2); color:var(--text);
+    width:min(430px,92vw); padding:16px; box-shadow:0 16px 50px rgba(0,0,0,.6);}
+  dialog::backdrop{background:rgba(0,0,0,.6);}
+  dialog h3{margin:0 0 8px; font-size:14px;}
+  dialog p{margin:0 0 12px; font-size:12px; color:var(--text-dim); line-height:1.5;}
+  .drow{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px;}
+  .drow label{font-size:12px; font-weight:600;}
+  .drow input[type=number]{width:82px; padding:7px 8px; border:1px solid var(--border); border-radius:7px;
+    background:var(--bg); color:var(--text); font-family:var(--mono); font-size:13px; text-align:right;}
+  .drow input:focus{outline:none; border-color:var(--accent);}
+  .check{display:flex; align-items:flex-start; gap:8px; font-size:12px; color:var(--text); line-height:1.4; cursor:pointer; margin-bottom:14px;}
+  .check input{margin-top:2px; accent-color:var(--accent); flex-shrink:0;}
+  .dlg-actions{display:flex; justify-content:flex-end; gap:8px;}
+  .btn{padding:7px 12px; border:1px solid var(--border); border-radius:7px; background:var(--bg-3); color:var(--text); font-size:12px; font-weight:600; cursor:pointer;}
+  .btn:hover{border-color:#3d4a58;}
+  .btn.primary{background:var(--accent-dim); border-color:var(--accent); color:#fff;}
+  .btn.primary:hover{background:var(--accent);}
+  @media (prefers-reduced-motion:reduce){ *{transition:none !important;} }
+</style>
+
+<div class="wrap">
+  <div class="mock-banner">
+    <h1>3D Colorator</h1><span class="mode-pill">?design</span>
+    <p>STL duplication: clone a piece so one STL file appears as several independent instances in the build — each with its own name, position and color. A duplicate is simply another piece pointing at the same <code style="font-family:var(--mono)">file</code>; instances of one STL are detected and badged automatically. Drag the blocks to place each instance.</p>
+  </div>
+
+  <div class="stage">
+    <div class="panel">
+      <h2>Pieces</h2>
+      <p class="sub">Each row is one instance. <b>⧉</b> duplicates once; the <b>layers</b> icon opens Duplicate &amp; Link; trash removes an instance — except the last copy of an STL.</p>
+      <div class="list" id="piece-list"></div>
+      <p class="tip"><b>Instances of one STL</b> share the file but nothing else — separate color, transform and name. The <b>layers</b> button makes several at once and can <b>link</b> them so they always match color. You can't delete the last instance of an STL — if a Print doesn't need a part, drop that STL from the Print/repo instead. Data-wise duplicating just appends <code>{ id, label, file:same, position:offset, color, palette }</code>.</p>
+    </div>
+
+    <div>
+      <div class="viewport">
+        <span class="vp-tag">Build stage (drag to place)</span>
+        <div class="vp-grid"></div>
+        <div class="stage3d" id="stage3d"></div>
+        <span class="vp-note">schematic · each instance placed independently</span>
+      </div>
+      <div class="legend">
+        <b>Try it:</b> on <b>Buttons</b>, click the <b>layers</b> icon → make <b>3</b> copies with <em>Link</em> checked. All four share one color (recolor any one — they all change) and carry a teal <em>linked</em> badge. Or use plain <b>⧉</b> for independent copies. Drag each block to place it, rename inline, and delete extras — the last instance of an STL can't be deleted.
+      </div>
+    </div>
+  </div>
+</div>
+
+<dialog id="dup-dialog">
+  <h3>Duplicate <span id="dup-target"></span></h3>
+  <p>Add independent copies of this STL to the build. Each copy can be placed and colored on its own.</p>
+  <div class="drow">
+    <label for="dup-count">Number of copies</label>
+    <input type="number" id="dup-count" min="1" max="24" value="3">
+  </div>
+  <label class="check"><input type="checkbox" id="dup-link" checked> Link all copies (and the original) so they always share one color</label>
+  <div class="dlg-actions">
+    <button class="btn" id="dup-cancel">Cancel</button>
+    <button class="btn primary" id="dup-create">Create copies</button>
+  </div>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+const CUBE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12.01l8.73-5.05"/><path d="M12 22.08V12"/></svg>';
+const DUP='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+const TRASH='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
+const LAYERS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>';
+const CHAIN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07l-1.4 1.41"/><path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07l1.4-1.41"/></svg>';
+
+const palette=[
+  {id:"ss_orange",name:"SeedSigner Orange",hex:"#f75403",opacity:1},
+  {id:"purple",   name:"Purple",           hex:"#9a57bd",opacity:1},
+  {id:"green",    name:"Green",            hex:"#00ae42",opacity:1},
+  {id:"black",    name:"Matte Black",      hex:"#111111",opacity:1},
+  {id:"white",    name:"White",            hex:"#ffffff",opacity:1},
+  {id:"smoke",    name:"Smoke",            hex:"#202020",opacity:0.45},
+];
+// x,y,w,h,round drive the schematic block; file identifies the STL
+const pieces=[
+  {id:"main_chassis",label:"Main Chassis",file:"stls/open_pill_mini_w_coverplate/Main_Chassis.stl",color:"ss_orange",x:145,y:112,w:150,h:120,round:"9px"},
+  {id:"lid",         label:"Lid",         file:"stls/open_pill_mini_w_coverplate/Lid.stl",         color:"ss_orange",x:145,y:84, w:150,h:26, round:"9px 9px 3px 3px"},
+  {id:"buttons",     label:"Buttons",     file:"stls/open_pill_mini_w_coverplate/Buttons.stl",     color:"white",    x:338,y:150,w:34, h:34, round:"8px"},
+  {id:"thumbstick",  label:"Thumbstick",  file:"stls/open_pill_mini_w_coverplate/Thumbstick.stl",  color:"white",    x:40, y:158,w:46, h:46, round:"50%"},
+];
+let selectedId=null;
+let linkSeq=1;
+// linked pieces (same linkId) always share one color
+function applyColor(p,id){
+  if(p.linkId) pieces.filter(q=>q.linkId===p.linkId).forEach(q=>q.color=id);
+  else p.color=id;
+}
+
+const $=(s,r=document)=>r.querySelector(s);
+const el=(t,c)=>{const e=document.createElement(t); if(c)e.className=c; return e;};
+const piece=id=>pieces.find(p=>p.id===id);
+const color=id=>palette.find(c=>c.id===id);
+function rgba(c){ if(!c)return"transparent"; const h=c.hex.replace("#",""); const n=parseInt(h,16);
+  return `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${c.opacity})`; }
+function baseName(file){ return file.split("/").pop(); }
+function instancesOf(file){ return pieces.filter(p=>p.file===file); }
+function swatch(id){ const w=el("span","sw"); const f=el("span","fill"); f.style.background=rgba(color(id)); w.appendChild(f); return w; }
+let toastTimer; function toast(m){ const t=$("#toast"); t.textContent=m; t.className="toast show";
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.className="toast",2400); }
+
+/* color dropdown */
+function colorDropdown(currentId,onPick){
+  const dd=el("span","dd"); const btn=el("button"); const c=color(currentId);
+  btn.append(swatch(currentId)); const cn=el("span","cn"); cn.textContent=c?c.name:"—"; btn.append(cn);
+  const car=el("span","caret"); car.textContent="▾"; btn.append(car);
+  btn.addEventListener("click",e=>{ e.stopPropagation();
+    closeMenus(); const menu=el("div","menu");
+    palette.forEach(col=>{ const mi=el("div","mi"); mi.append(swatch(col.id));
+      const nm=el("span","cn"); nm.textContent=col.name; mi.append(nm);
+      if(col.id===currentId){ const ck=el("span","ck"); ck.textContent="✓"; mi.append(ck); }
+      mi.addEventListener("click",()=>{ closeMenus(); onPick(col.id); }); menu.appendChild(mi); });
+    dd.appendChild(menu); setTimeout(()=>document.addEventListener("pointerdown",closeOnce,{once:true}),0);
+  });
+  dd.appendChild(btn); return dd;
+}
+function closeMenus(){ document.querySelectorAll(".menu").forEach(m=>m.remove()); }
+function closeOnce(e){ if(!e.target.closest(".menu")&&!e.target.closest(".dd>button")) closeMenus(); }
+
+/* ---------- actions ---------- */
+function uniqueId(base){ let n=2,id=base+"_"+n; while(pieces.some(p=>p.id===id)){ n++; id=base+"_"+n; } return id; }
+function duplicate(p){
+  const base=p.id.replace(/_\d+$/,"");
+  const id=uniqueId(base);
+  const label=p.label.replace(/\s+\d+$/,"")+" "+(instancesOf(p.file).length+1);
+  const dup={...p, id, label, x:Math.min(p.x+18,440-p.w), y:Math.min(p.y+18,280-p.h)};
+  let idx=-1; pieces.forEach((q,i)=>{ if(q.file===p.file) idx=i; });
+  pieces.splice(idx+1,0,dup);
+  selectedId=id; renderAll(); toast("Duplicated → "+label);
+}
+function del(p){
+  if(instancesOf(p.file).length<=1){ toast("Can't delete the only instance of "+baseName(p.file)+" — remove the STL from the Print instead"); return; }
+  const lid=p.linkId;
+  pieces.splice(pieces.indexOf(p),1);
+  if(selectedId===p.id) selectedId=null;
+  if(lid){ const rest=pieces.filter(q=>q.linkId===lid); if(rest.length<2) rest.forEach(q=>q.linkId=undefined); }
+  renderAll(); toast("Removed "+p.label);
+}
+
+/* ---------- duplicate & link dialog ---------- */
+let dupTarget=null;
+function openDupDialog(p){
+  dupTarget=p;
+  $("#dup-target").textContent='"'+p.label.replace(/\s+\d+$/,"")+'"';
+  $("#dup-count").value=3; $("#dup-link").checked=true;
+  $("#dup-dialog").showModal();
+}
+$("#dup-cancel").addEventListener("click",()=>$("#dup-dialog").close());
+$("#dup-create").addEventListener("click",()=>{
+  const p=dupTarget; if(!p) return;
+  let n=parseInt($("#dup-count").value,10); if(isNaN(n)||n<1) n=1; n=Math.min(n,24);
+  const link=$("#dup-link").checked;
+  const created=[];
+  for(let i=0;i<n;i++){
+    const id=uniqueId(p.id.replace(/_\d+$/,""));
+    const label=p.label.replace(/\s+\d+$/,"")+" "+(instancesOf(p.file).length+1);
+    const off=18*(i+1);
+    const dup={...p, id, label, x:Math.min(p.x+off,440-p.w), y:Math.min(p.y+off,280-p.h), linkId:undefined};
+    let idx=-1; pieces.forEach((q,k)=>{ if(q.file===p.file) idx=k; });
+    pieces.splice(idx+1,0,dup);
+    created.push(dup);
+  }
+  if(link){
+    const lid=p.linkId||("lnk_"+(linkSeq++));
+    p.linkId=lid; created.forEach(c=>c.linkId=lid);
+    pieces.filter(q=>q.linkId===lid).forEach(q=>q.color=p.color); // share the original's color
+  }
+  $("#dup-dialog").close();
+  selectedId=created[created.length-1].id; renderAll();
+  toast("Added "+n+(link?" linked":"")+" cop"+(n===1?"y":"ies")+" of "+baseName(p.file));
+});
+
+/* ---------- list ---------- */
+function renderList(){
+  const list=$("#piece-list"); list.innerHTML="";
+  pieces.forEach(p=>{
+    const inst=instancesOf(p.file); const idx=inst.indexOf(p)+1;
+    const row=el("div","prow"+(p.id===selectedId?" sel":"")); row.dataset.id=p.id;
+    row.addEventListener("click",e=>{ if(e.target.closest("input,button,.dd")) return; selectedId=p.id; syncSelection(); });
+
+    const top=el("div","prow-top");
+    const label=el("input","plabel"); label.value=p.label; label.spellcheck=false;
+    label.addEventListener("input",()=>{ p.label=label.value; });
+    top.appendChild(label);
+
+    if(inst.length>1){ const b=el("span","inst"); b.innerHTML='⧉ <span>'+idx+"/"+inst.length+"</span>"; b.title="Instance "+idx+" of "+inst.length+" from this STL"; top.appendChild(b); }
+    if(p.linkId){ const lb=el("span","linkbadge"); lb.innerHTML=CHAIN+"<span>linked</span>"; lb.title="Shares one color with its link group"; top.appendChild(lb); }
+    const chip=el("span","stl-chip"); chip.innerHTML=CUBE+"<span>"+baseName(p.file)+"</span>"; chip.title=p.file; top.appendChild(chip);
+
+    const acts=el("div","row-actions");
+    const dupBtn=el("button","icon-btn dup"); dupBtn.innerHTML=DUP; dupBtn.title="Duplicate once";
+    dupBtn.addEventListener("click",e=>{ e.stopPropagation(); duplicate(p); });
+    const bulkBtn=el("button","icon-btn dup"); bulkBtn.innerHTML=LAYERS; bulkBtn.title="Duplicate ×N & link…";
+    bulkBtn.addEventListener("click",e=>{ e.stopPropagation(); openDupDialog(p); });
+    const sole = inst.length<=1;
+    const delBtn=el("button","icon-btn del"); delBtn.innerHTML=TRASH;
+    delBtn.title = sole ? "Can't delete the only instance of this STL — remove it from the Print instead" : "Remove this instance";
+    delBtn.disabled = sole;
+    delBtn.addEventListener("click",e=>{ e.stopPropagation(); del(p); });
+    acts.append(dupBtn,bulkBtn,delBtn); top.appendChild(acts);
+    row.appendChild(top);
+
+    row.appendChild(colorDropdown(p.color, id=>{ applyColor(p,id); renderList(); renderBlocks(); syncSelection(); }));
+    list.appendChild(row);
+  });
+}
+
+/* ---------- viewport ---------- */
+function renderBlocks(){
+  const stage=$("#stage3d"); stage.innerHTML="";
+  pieces.forEach(p=>{
+    const b=el("div","part3"+(p.id===selectedId?" sel":"")); b.dataset.id=p.id;
+    b.style.left=p.x+"px"; b.style.top=p.y+"px"; b.style.width=p.w+"px"; b.style.height=p.h+"px";
+    b.style.borderRadius=p.round; b.style.background=rgba(color(p.color));
+    const s=el("span"); s.textContent=p.label; b.appendChild(s);
+    attachBlockDrag(b,p);
+    stage.appendChild(b);
+  });
+}
+function attachBlockDrag(node,p){
+  node.addEventListener("pointerdown",e=>{
+    if(e.button!==0) return; e.preventDefault();
+    selectedId=p.id; syncSelection();
+    const rect=node.parentElement.getBoundingClientRect();
+    const startX=e.clientX, startY=e.clientY, ox=p.x, oy=p.y; let dragging=false;
+    const move=ev=>{
+      if(!dragging){ if(Math.hypot(ev.clientX-startX,ev.clientY-startY)<3) return; dragging=true; node.classList.add("dragging"); }
+      let nx=ox+(ev.clientX-startX), ny=oy+(ev.clientY-startY);
+      nx=Math.max(0,Math.min(nx,rect.width-p.w)); ny=Math.max(0,Math.min(ny,rect.height-p.h));
+      p.x=nx; p.y=ny; node.style.left=nx+"px"; node.style.top=ny+"px";
+    };
+    const up=()=>{ document.removeEventListener("pointermove",move); document.removeEventListener("pointerup",up); node.classList.remove("dragging"); };
+    document.addEventListener("pointermove",move); document.addEventListener("pointerup",up);
+  });
+}
+
+function syncSelection(){
+  document.querySelectorAll(".prow").forEach(r=>r.classList.toggle("sel", r.dataset.id===selectedId));
+  document.querySelectorAll(".part3").forEach(b=>b.classList.toggle("sel", b.dataset.id===selectedId));
+}
+function renderAll(){ renderList(); renderBlocks(); }
+renderAll();
+</script>
