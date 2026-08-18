@@ -84,6 +84,7 @@ html, body {
 .sidebar {
   width: var(--sidebar-w);
   min-width: var(--sidebar-w);
+  flex-shrink: 0;
   overflow-y: auto;
   background: var(--bg-2);
   border-right: 1px solid var(--border);
@@ -626,21 +627,28 @@ dialog input[type="file"] {
 /* ---------- palette editor ---------- */
 .pal-list { display: flex; flex-direction: column; gap: 5px; }
 
-/* Two lines: identity on top, the numbers underneath. A 320px sidebar cannot
-   fit name + hex + opacity + controls on one row without crushing the name. */
+/* One line per color — the palette lives in a wide dialog, not the sidebar. */
 .pal-row {
   display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding: 6px;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 7px;
   border: 1px solid var(--border);
   border-radius: 7px;
   background: var(--bg-3);
 }
 
-.pal-main { display: flex; align-items: center; gap: 7px; }
-.pal-meta { display: flex; align-items: center; gap: 6px; }
-.pal-meta .hex-field { flex: 1; min-width: 0; }
+/* The row is authored as two groups but laid out as one line, so the visual
+   order is set here rather than by DOM position. */
+.pal-main { display: contents; }
+.pal-meta { display: contents; }
+.pal-row .grip { order: 0; }
+.pal-row .sw { order: 1; }
+.pal-row .pal-name { order: 2; flex: 1; min-width: 80px; }
+.pal-row .hex-field { order: 3; flex: 0 0 108px; }
+.pal-row .op-cell { order: 4; }
+.pal-row .pal-id { order: 5; }
+.pal-row .icon-btn { order: 6; }
 
 .pal-row.dragging { opacity: 0.5; }
 
@@ -732,7 +740,11 @@ dialog input[type="file"] {
 .op-cell .pct { font-family: Consolas, monospace; font-size: 11px; color: var(--text-dim); }
 
 .pal-id {
-  margin-left: auto;
+  flex: 0 0 auto;
+  width: 74px;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-family: Consolas, monospace;
   font-size: 10px;
   color: var(--text-dim);
@@ -936,3 +948,71 @@ dialog input[type="file"] {
 
 .op-cell input::-webkit-outer-spin-button,
 .op-cell input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* ---------- resizable sidebar ---------- */
+.resizer {
+  flex: 0 0 5px;
+  cursor: col-resize;
+  background: var(--border);
+  position: relative;
+  transition: background 0.12s;
+}
+
+.resizer::after {
+  content: "";
+  position: absolute;
+  inset: 0 -3px;
+}
+
+.resizer:hover,
+.resizer.dragging { background: var(--accent); }
+
+body.resizing { cursor: col-resize; user-select: none; }
+
+@media (max-width: 760px) {
+  .resizer { display: none; }
+}
+
+/* ---------- dialogs that host editors ---------- */
+dialog.wide-dialog { width: min(680px, 94vw); }
+
+dialog h2 .count {
+  font-family: Consolas, monospace;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-dim);
+  margin-left: 6px;
+}
+
+#palette-list {
+  max-height: min(52vh, 460px);
+  overflow-y: auto;
+  margin-top: 10px;
+  padding-right: 2px;
+}
+
+#piece-colors-body { margin-top: 10px; }
+#piece-colors-body .chips { max-height: 44vh; overflow-y: auto; }
+
+.btn.wide { width: 100%; text-align: left; }
+
+/* the per-piece launcher: current color + how many are offered */
+.piece-colors-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.piece-colors-btn:hover { border-color: #3d4a58; }
+.piece-colors-btn .nm { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.piece-colors-btn .count { color: var(--text-dim); font-size: 11px; white-space: nowrap; }
+.piece-colors-btn .caret { color: var(--text-dim); }

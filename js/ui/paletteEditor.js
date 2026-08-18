@@ -26,9 +26,8 @@ export class PaletteEditor {
   }
 
   wire() {
-    this.els.paletteHead.addEventListener("click", () => {
-      this.els.paletteSection.classList.toggle("collapsed");
-    });
+    this.els.btnOpenPalette.addEventListener("click", () => this.open());
+    this.els.btnPaletteClose.addEventListener("click", () => this.els.paletteDialog.close());
     this.els.btnAddColor.addEventListener("click", () => this.addColor());
     this.els.btnColorDeleteCancel.addEventListener("click", () => this.els.colorDeleteDialog.close());
     this.els.btnColorDeleteConfirm.addEventListener("click", () => {
@@ -38,11 +37,17 @@ export class PaletteEditor {
     });
   }
 
+  open() {
+    this.render();
+    this.els.paletteDialog.showModal();
+  }
+
   render() {
     const palette = this.ctx.getPalette();
     if (!palette) return;
-    this.els.paletteCount.textContent =
-      palette.colors.length + " color" + (palette.colors.length === 1 ? "" : "s");
+    const label = palette.colors.length + " color" + (palette.colors.length === 1 ? "" : "s");
+    this.els.paletteCount.textContent = label;
+    this.els.paletteCountInline.textContent = "Edit colors… (" + label + ")";
 
     const list = this.els.paletteList;
     list.innerHTML = "";

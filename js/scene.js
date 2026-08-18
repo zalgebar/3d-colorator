@@ -137,13 +137,6 @@ export class Viewer {
     this.axes.visible = on;
   }
 
-  // Left-drag is the transform gizmo in design mode, so orbit moves to right-drag.
-  setDesignNavigation(on) {
-    this.controls.mouseButtons = on
-      ? { LEFT: -1, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE }
-      : { LEFT: THREE.MOUSE.ROTATE, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.PAN };
-  }
-
   screenshot(filename, onDone) {
     this.renderer.render(this.scene, this.camera);
     this.renderer.domElement.toBlob((blob) => {

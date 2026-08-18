@@ -16,6 +16,7 @@ import { PieceList } from "./ui/pieceList.js";
 import { PaletteEditor } from "./ui/paletteEditor.js";
 import { DesignIO } from "./ui/submit.js";
 import { initFeedback, toast, showLoading } from "./ui/toast.js";
+import { initSidebarResizer } from "./ui/resizer.js";
 
 const isOwner = new URLSearchParams(window.location.search).has("design");
 
@@ -42,7 +43,10 @@ const els = {};
   "identity-extension", "extension-pubkey", "identity-nsec", "nsec-input", "nsec-remember",
   "identity-onetime", "onetime-pubkey", "submit-preview", "submit-status",
   "btn-submit-send", "btn-submit-cancel", "loading", "toast", "viewport", "about-version",
-  "palette-section", "palette-head", "palette-count", "palette-list", "btn-add-color",
+  "palette-dialog", "btn-open-palette", "btn-palette-close", "palette-count",
+  "palette-count-inline", "palette-list", "btn-add-color",
+  "piece-colors-dialog", "piece-colors-title", "piece-colors-body", "btn-piece-colors-close",
+  "sidebar-resizer",
   "btn-copy-palette", "btn-download-palette", "color-delete-dialog", "color-delete-msg",
   "color-delete-uses", "btn-color-delete-cancel", "btn-color-delete-confirm",
 ].forEach((id) => {
@@ -72,6 +76,11 @@ function init() {
   });
 
   pieceList = new PieceList(els.pieceList, {
+    dialog: els.pieceColorsDialog,
+    title: els.pieceColorsTitle,
+    body: els.pieceColorsBody,
+    close: els.btnPieceColorsClose,
+  }, {
     onSelect: (id) => editor.select(id),
     onColorChange: setPieceColor,
     onOfferingChange: (pieceId) => {
@@ -119,6 +128,8 @@ function init() {
     getPalette: () => state.palette,
     setPieceColor: (id, colorId) => setPieceColor(id, colorId),
   });
+
+  initSidebarResizer(els.sidebarResizer, document.querySelector(".sidebar"));
 
   wireUI();
   applyOwnerGating(isOwner);
@@ -437,7 +448,6 @@ function setDesignMode(on) {
   viewer.setAxesVisible(on);
   els.btnGrid.classList.toggle("active", on);
   els.btnAxes.classList.toggle("active", on);
-  viewer.setDesignNavigation(on);
 
   if (state.print) pieceList.build(state.print, state.palette, state.records, on);
   if (on) editor.select(state.selectedId || firstPieceId());

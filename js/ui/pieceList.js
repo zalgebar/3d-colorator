@@ -25,8 +25,14 @@ function closeMenusOnOutside(e) {
 }
 
 export class PieceList {
-  constructor(root, { onSelect, onColorChange, onVisibilityChange, onOfferingChange }) {
+  constructor(root, dialogEls, { onSelect, onColorChange, onVisibilityChange, onOfferingChange }) {
     this.root = root;
+    this.dialogEls = dialogEls; // { dialog, title, body, close }
+    this.openPieceId = null;
+    if (dialogEls) {
+      dialogEls.close.addEventListener("click", () => dialogEls.dialog.close());
+      dialogEls.dialog.addEventListener("close", () => (this.openPieceId = null));
+    }
     this.onSelect = onSelect;
     this.onColorChange = onColorChange;
     this.onVisibilityChange = onVisibilityChange;
@@ -68,7 +74,7 @@ export class PieceList {
       top.append(label, eye);
       row.appendChild(top);
 
-      if (designOn) this.buildSubsetEditor(row, def);
+      if (designOn) row.appendChild(this.buildColorsButton(def));
       else row.appendChild(this.buildDropdown(def));
 
       row.addEventListener("click", (e) => {
@@ -83,6 +89,53 @@ export class PieceList {
 
     [...records.keys()].forEach((id) => this.updateEye(id));
     this.updateSelection(this.selectedId);
+    if (this.openPieceId) this.renderPieceDialog(this.openPieceId);
+  }
+
+  // ---- owner: launcher + dialog ----
+
+  buildColorsButton(def) {
+    const rec = this.records.get(def.id);
+    const color = this.palette.resolve(rec ? rec.color : def.defaultColor);
+    const offered = this.palette.offeredIds(def).length;
+
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "piece-colors-btn";
+    const sw = document.createElement("span");
+    sw.className = "dd-sw";
+    paintSwatch(sw, color);
+    const nm = document.createElement("span");
+    nm.className = "nm";
+    nm.textContent = color.name;
+    const count = document.createElement("span");
+    count.className = "count";
+    count.textContent = def.palette.length ? offered + " offered" : "all";
+    const caret = document.createElement("span");
+    caret.className = "caret";
+    caret.textContent = "▸";
+    btn.append(sw, nm, count, caret);
+    btn.title = "Edit which colors " + def.label + " offers";
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.openPieceColors(def);
+    });
+    return btn;
+  }
+
+  openPieceColors(def) {
+    if (!this.dialogEls) return;
+    this.openPieceId = def.id;
+    this.renderPieceDialog(def.id);
+    this.dialogEls.dialog.showModal();
+  }
+
+  renderPieceDialog(pieceId) {
+    const def = this.print && this.print.pieces.find((p) => p.id === pieceId);
+    if (!def || !this.dialogEls) return;
+    this.dialogEls.title.textContent = def.label;
+    this.dialogEls.body.innerHTML = "";
+    this.buildSubsetEditor(this.dialogEls.body, def);
   }
 
   // ---- visitor: one dropdown of the piece's offered colors ----
@@ -155,7 +208,7 @@ export class PieceList {
 
   // ---- owner: which colors this piece offers ----
 
-  buildSubsetEditor(row, def) {
+  buildSubsetEditor(container, def) {
     const restricted = def.palette.length > 0;
 
     const offer = document.createElement("div");
@@ -189,7 +242,7 @@ export class PieceList {
       ? def.palette.length + " offered · drag to reorder"
       : "<b>Offer All</b> — no colors selected";
     offer.appendChild(note);
-    row.appendChild(offer);
+    container.appendChild(offer);
 
     const chips = document.createElement("div");
     chips.className = "chips" + (restricted ? "" : " implicit");
@@ -212,7 +265,7 @@ export class PieceList {
       add.appendChild(addBtn);
       chips.appendChild(add);
     }
-    row.appendChild(chips);
+    container.appendChild(chips);
 
     if (restricted) {
       const reset = document.createElement("button");
@@ -224,7 +277,7 @@ export class PieceList {
         def.palette = [];
         this.onOfferingChange(def.id);
       });
-      row.appendChild(reset);
+      container.appendChild(reset);
     }
   }
 
@@ -317,9 +370,11 @@ export class PieceList {
     setTimeout(() => document.addEventListener("pointerdown", closeMenusOnOutside, { once: true }), 0);
   }
 
-  // Stable insertion: among chips on the cursor's row, insert before the first
-  // whose centre is right of the pointer. Monotonic, so neighbours reflowing
-  // under the cursor cannot oscillate the drop target.
+  // Stable insertion in reading order: walk the chips in DOM order and drop
+  // before the first one the cursor has not yet reached — either on an earlier
+  // row, or on the same row and left of its centre. Advancing the pointer can
+  // only ever move that target forward, so a neighbour reflowing underneath the
+  // cursor cannot bounce the chip back and forth.
   attachChipDrag(chip, def, container, promote) {
     chip.addEventListener("pointerdown", (e) => {
       if (e.button !== 0 || e.target.closest(".rm")) return;
@@ -334,19 +389,17 @@ export class PieceList {
           dragging = true;
           chip.classList.add("dragging");
         }
-        const others = [...container.querySelectorAll(".chip:not(.dragging)")];
-        const sameRow = others.filter((s) => {
-          const b = s.getBoundingClientRect();
-          return ev.clientY >= b.top && ev.clientY <= b.bottom;
-        });
-        const pool = sameRow.length ? sameRow : others;
-        let best = { off: -Infinity, el: null };
-        for (const s of pool) {
-          const b = s.getBoundingClientRect();
-          const off = ev.clientX - (b.left + b.width / 2);
-          if (off < 0 && off > best.off) best = { off, el: s };
+        let ref = null;
+        for (const other of container.querySelectorAll(".chip:not(.dragging)")) {
+          const b = other.getBoundingClientRect();
+          const onEarlierRow = ev.clientY < b.top;
+          const beforeOnThisRow = ev.clientY <= b.bottom && ev.clientX < b.left + b.width / 2;
+          if (onEarlierRow || beforeOnThisRow) {
+            ref = other;
+            break;
+          }
         }
-        const ref = best.el || container.querySelector(".chip-add") || null;
+        if (!ref) ref = container.querySelector(".chip-add");
         if (chip.nextElementSibling !== ref) container.insertBefore(chip, ref);
       };
 

@@ -14,7 +14,10 @@ Two audiences throughout:
 
 Mockup: [`palette-mockup.html`](mockups/palette-mockup.html)
 
-A collapsible sidebar section above Pieces. App-wide, so it persists across print switches.
+A **modal dialog** opened from a *Palette* launcher in the sidebar. App-wide, so it persists
+across print switches. It lives in a dialog rather than the sidebar because the sidebar is
+narrow enough that a one-line color row crushes the name field, and because piece rows need
+that space for the controls arriving in later phases.
 
 Each row: `⠿` drag handle · swatch · name field · hex field (+ picker) · opacity `%` field · `✕`.
 
@@ -72,6 +75,11 @@ handle in Phase 2 rather than retrofit:
 Curates *which* palette colors a piece offers. Colors are **created only in the palette
 editor** — the old free color input and `+` button on piece rows are removed.
 
+Lives in a **per-piece dialog**, opened from a launcher on the piece row that shows the piece's
+current color and how many colors it offers. Piece rows accumulate controls as linking and
+duplication land, so the color offering gets its own surface rather than competing for sidebar
+width.
+
 **Offering: `Offer all` | `Restrict`**
 
 - **Offer all** (default for a new piece) — label reads
@@ -89,6 +97,19 @@ editor** — the old free color input and `+` button on piece rows are removed.
 | Reset | "↺ Offer all instead" returns to the unrestricted state. |
 
 ---
+
+## Viewport navigation
+
+Identical in both modes: **left-drag orbits, right-drag pans, wheel/middle dollies.** Design
+mode does not remap the mouse. The transform gizmo takes precedence when the pointer goes down
+on one of its handles, because `TransformControls` disables the orbit controls for the duration
+of a handle drag — three.js's own recommended pairing.
+
+## Sidebar
+
+Resizable by dragging its right edge (minimum 260px, maximum 60% of the window), double-click
+to reset. The width persists in `localStorage`. It is applied as a CSS custom property, so the
+viewport's `ResizeObserver` picks the change up without an explicit relayout.
 
 ## Visitor color control
 

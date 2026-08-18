@@ -41,21 +41,12 @@
       <p id="print-desc" class="desc"></p>
     </section>
 
-    <section data-owner-only class="palette-section" id="palette-section">
-      <div class="sec-head" id="palette-head">
-        <h2>Palette</h2>
-        <span class="count" id="palette-count"></span>
-        <span class="chev">▾</span>
-      </div>
-      <div class="sec-body">
-        <div id="palette-list" class="pal-list"></div>
-        <button id="btn-add-color" class="add-color" type="button">+ Add color</button>
-        <div class="btn-row">
-          <button id="btn-copy-palette" class="btn">Copy JSON</button>
-          <button id="btn-download-palette" class="btn">Download JSON</button>
-        </div>
-        <p class="hint">The shop-wide color catalog. Pieces reference colors by <b>id</b>, so renaming or re-mixing a color updates every piece at once. Download and commit <b>palette.json</b> to make changes permanent.</p>
-      </div>
+    <section data-owner-only>
+      <h2>Palette</h2>
+      <button id="btn-open-palette" class="btn wide" type="button">
+        <span id="palette-count-inline">Edit colors…</span>
+      </button>
+      <p class="hint">The shop-wide catalog. Pieces reference colors by <b>id</b>, so renaming or re-mixing one updates every piece at once.</p>
     </section>
 
     <section>
@@ -113,12 +104,35 @@
     </section>
   </aside>
 
+  <div class="resizer" id="sidebar-resizer" role="separator" aria-orientation="vertical" title="Drag to resize · double-click to reset"></div>
+
   <div class="viewport-wrap">
     <canvas id="viewport"></canvas>
     <div id="loading" class="overlay hidden"><div class="spinner"></div><span>Loading print…</span></div>
     <div id="toast" class="toast hidden"></div>
   </div>
 </main>
+
+<dialog id="palette-dialog" class="wide-dialog">
+  <h2>Palette <span class="count" id="palette-count"></span></h2>
+  <p class="hint">Drag to reorder — that order is what visitors see when a piece offers everything. Renaming is always safe; the <b>id</b> is what pieces and share links reference.</p>
+  <div id="palette-list" class="pal-list"></div>
+  <button id="btn-add-color" class="add-color" type="button">+ Add color</button>
+  <div class="dialog-actions">
+    <button id="btn-copy-palette" class="btn">Copy JSON</button>
+    <button id="btn-download-palette" class="btn">Download JSON</button>
+    <button id="btn-palette-close" class="btn primary">Done</button>
+  </div>
+</dialog>
+
+<dialog id="piece-colors-dialog">
+  <h2>Colors — <span id="piece-colors-title"></span></h2>
+  <p class="hint">Choose which palette colors this piece offers, and which one it starts on.</p>
+  <div id="piece-colors-body"></div>
+  <div class="dialog-actions">
+    <button id="btn-piece-colors-close" class="btn primary">Done</button>
+  </div>
+</dialog>
 
 <dialog id="color-delete-dialog">
   <h2>Delete this color?</h2>
