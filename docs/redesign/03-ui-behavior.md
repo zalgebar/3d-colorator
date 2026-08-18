@@ -99,9 +99,19 @@ Each row: `⠿` drag handle · swatch · name · `%` (translucent only) · `★`
 | Set default | Click the row. `★` marks it; that color is what the viewport shows and what exports as `defaultColor`. |
 | Reorder | Drag `⠿`, **Restrict only**. This is the order visitors see. |
 | Remove | `✕`, **Restrict only** — removes from this piece, never from the palette. |
-| Add | "+ Add a color" opens a menu of palette colors not yet offered. The future paid **Custom color…** entry lives at the bottom of it. |
+| Add one | "+ Add a color" opens a menu of palette colors not yet offered. The future paid **Custom color…** entry lives at the bottom of it. |
+| Add the rest | "Add remaining (N)" appends every color the piece does not offer yet, **staying in Restrict** and keeping the curated order in front. Distinct from the *Offer all* tab, which discards the explicit list. |
 | Minimum | Cannot remove the last remaining color. |
-| Reset | "↺ Offer all instead" returns to the unrestricted state. |
+
+The action area is rendered in both modes — the two buttons under *Restrict*, an explanatory
+hint under *Offer all* — so switching tabs does not resize the dialog. Rows also reserve the
+remove-button slot when it is not shown, keeping row height identical across modes.
+
+Popup menus (the add-color list, and the visitor's dropdown) are **fixed-positioned and
+parented to the open dialog**. Absolute positioning let a scrolling ancestor — the sidebar, or
+the offered-colors list — clip them. Fixed positioning is laid out against the viewport so
+`overflow` cannot clip it, and parenting to the `<dialog>` keeps the menu clickable, since a
+modal dialog makes the rest of the document inert.
 
 Reordering is deliberately absent from *Offer all*: "offer everything in a custom order" can
 only be stored as an explicit list, which is precisely what *Restrict* is. An earlier build let

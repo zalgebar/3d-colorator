@@ -836,8 +836,18 @@ dialog input[type="file"] {
 .subset-row .grip { width: 12px; flex-shrink: 0; }
 .subset-row .grip.inert { cursor: default; }
 
-.subset-add { position: relative; }
-.subset-add .add-color { margin-top: 8px; }
+/* Rendered in both modes so the dialog keeps its height when tabs switch. */
+.subset-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  margin-top: 8px;
+}
+
+.subset-add { position: relative; display: inline-flex; }
+.subset-hint { font-size: 11px; color: var(--text-dim); }
+.subset-row .rm-spacer { width: 22px; height: 22px; flex-shrink: 0; }
 
 .linky {
   background: none;
@@ -859,6 +869,13 @@ dialog input[type="file"] {
   top: calc(100% + 4px);
   left: 0;
   min-width: 168px;
+}
+
+/* Positioned against the viewport so a scrolling ancestor cannot clip it. */
+.menu.floating {
+  position: fixed;
+  top: 0;
+  left: 0;
   max-height: 230px;
   overflow: auto;
   padding: 4px;

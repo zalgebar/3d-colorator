@@ -8,21 +8,15 @@
 
 import { paintSwatch, swatchTitle } from "./swatch.js";
 import { toast } from "./toast.js";
+import { openFloatingMenu, closeMenus } from "./menu.js";
+
+export { closeMenus };
 
 const EYE_SVG =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
   '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>' +
   '<path class="lens" d="M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/>' +
   "</svg>";
-
-export function closeMenus() {
-  document.querySelectorAll(".menu").forEach((m) => m.remove());
-}
-
-function closeMenusOnOutside(e) {
-  if (e.target.closest(".menu") || e.target.closest(".dd > button") || e.target.closest(".subset-add > button")) return;
-  closeMenus();
-}
 
 export class PieceList {
   constructor(root, dialogEls, { onSelect, onColorChange, onVisibilityChange, onOfferingChange }) {
@@ -174,11 +168,11 @@ export class PieceList {
 
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      const open = dd.querySelector(".menu");
-      closeMenus();
-      if (open) return;
-      const menu = document.createElement("div");
-      menu.className = "menu";
+      if (document.querySelector(".menu")) {
+        closeMenus();
+        return;
+      }
+      openFloatingMenu(btn, (menu) => {
       this.palette.offeredIds(def).forEach((colorId) => {
         const color = this.palette.resolve(colorId);
         const mi = document.createElement("div");
@@ -204,8 +198,7 @@ export class PieceList {
         });
         menu.appendChild(mi);
       });
-      dd.appendChild(menu);
-      setTimeout(() => document.addEventListener("pointerdown", closeMenusOnOutside, { once: true }), 0);
+      });
     });
 
     dd.appendChild(btn);
@@ -259,32 +252,50 @@ export class PieceList {
     });
     container.appendChild(list);
 
+    // The action area is rendered in both modes — occupied under Restrict,
+    // holding an explanatory hint under Offer all — so switching tabs does not
+    // change the dialog's height.
+    const actions = document.createElement("div");
+    actions.className = "subset-actions";
+
     if (restricted) {
       const remaining = this.palette.ids.filter((id) => !def.palette.includes(id));
-      const add = document.createElement("div");
+
+      const add = document.createElement("span");
       add.className = "subset-add";
       const addBtn = document.createElement("button");
       addBtn.type = "button";
-      addBtn.className = "add-color";
-      addBtn.textContent = remaining.length ? "+ Add a color" : "Every palette color is already offered";
+      addBtn.className = "btn";
+      addBtn.textContent = "+ Add a color";
       addBtn.disabled = remaining.length === 0;
       addBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         this.openAddMenu(add, def, remaining);
       });
       add.appendChild(addBtn);
-      container.appendChild(add);
+      actions.appendChild(add);
 
-      const reset = document.createElement("button");
-      reset.type = "button";
-      reset.className = "linky";
-      reset.textContent = "↺ Offer all instead";
-      reset.addEventListener("click", () => {
-        def.palette = [];
+      // Distinct from the "Offer all" tab: that discards the explicit list,
+      // this tops it up while keeping the order already curated.
+      const addAll = document.createElement("button");
+      addAll.type = "button";
+      addAll.className = "btn";
+      addAll.textContent = "Add remaining (" + remaining.length + ")";
+      addAll.disabled = remaining.length === 0;
+      addAll.title = "Append every palette color this piece does not offer yet, keeping the current order";
+      addAll.addEventListener("click", () => {
+        def.palette = def.palette.concat(remaining);
         this.onOfferingChange(def.id);
+        toast("Added " + remaining.length + " color" + (remaining.length === 1 ? "" : "s"));
       });
-      container.appendChild(reset);
+      actions.appendChild(addAll);
+    } else {
+      const hint = document.createElement("span");
+      hint.className = "subset-hint";
+      hint.textContent = "Switch to Restrict to choose colors or set their order.";
+      actions.appendChild(hint);
     }
+    container.appendChild(actions);
   }
 
   // One full-width row per color, matching what the visitor sees in the
@@ -348,6 +359,11 @@ export class PieceList {
         this.onOfferingChange(def.id);
       });
       row.appendChild(rm);
+    } else {
+      const spacer = document.createElement("span");
+      spacer.className = "rm-spacer";
+      spacer.setAttribute("aria-hidden", "true");
+      row.appendChild(spacer);
     }
 
     // Clicking the row makes it the piece's default — the color shown in the
@@ -361,9 +377,7 @@ export class PieceList {
   }
 
   openAddMenu(anchor, def, remaining) {
-    closeMenus();
-    const menu = document.createElement("div");
-    menu.className = "menu";
+    openFloatingMenu(anchor.querySelector("button") || anchor, (menu) => {
     remaining.forEach((colorId) => {
       const color = this.palette.resolve(colorId);
       const mi = document.createElement("div");
@@ -387,8 +401,7 @@ export class PieceList {
     reserved.className = "mi reserved";
     reserved.textContent = "Custom color… (planned)";
     menu.appendChild(reserved);
-    anchor.appendChild(menu);
-    setTimeout(() => document.addEventListener("pointerdown", closeMenusOnOutside, { once: true }), 0);
+    });
   }
 
   // Vertical reorder, same shape as the palette editor: document-level
