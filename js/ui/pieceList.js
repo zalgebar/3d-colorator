@@ -5,6 +5,8 @@
 // that is the palette + subset editor in Phase 3. This module only lets a
 // visitor or the owner pick among the colors a piece already offers.
 
+import { paintSwatch, swatchTitle } from "./swatch.js";
+
 const EYE_SVG =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
   '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>' +
@@ -77,13 +79,13 @@ export class PieceList {
   }
 
   makeSwatch(pieceId, colorId) {
-    const color = this.palette.byId(colorId);
+    const color = this.palette.resolve(colorId);
     const sw = document.createElement("button");
     sw.type = "button";
     sw.className = "color-swatch";
-    sw.style.background = color ? color.hex : "#cccccc";
+    paintSwatch(sw, color);
     sw.dataset.color = colorId;
-    sw.title = color ? color.name : colorId;
+    sw.title = swatchTitle(color);
     sw.addEventListener("click", (e) => {
       e.stopPropagation();
       const rec = this.records.get(pieceId);

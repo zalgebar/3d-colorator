@@ -30,6 +30,35 @@ export function normalizePalette(raw) {
   return { version: p.version || 1, colors };
 }
 
+// A piece's chosen color is a small union: a palette id, or an off-palette
+// request. Only ids are produced today — `{ custom }` is reserved for the paid
+// custom-color feature, but everything downstream already resolves it.
+//   type Chosen = string | { custom: "#rrggbb" }
+// 01-data-model.md#reserved-for-the-future-not-implemented
+
+export function isCustom(chosen) {
+  return !!chosen && typeof chosen === "object" && HEX_RE.test(chosen.custom || "");
+}
+
+// How a chosen color is written into a share link: ids bare, customs `~`-prefixed.
+export function chosenKey(chosen) {
+  if (isCustom(chosen)) return "~" + chosen.custom.slice(1).toLowerCase();
+  return String(chosen || "");
+}
+
+export function parseChosen(token) {
+  const t = String(token || "");
+  if (t.startsWith("~")) {
+    const hex = "#" + t.slice(1).toLowerCase();
+    return HEX_RE.test(hex) ? { custom: hex } : null;
+  }
+  return t || null;
+}
+
+export function isTranslucent(color) {
+  return !!color && color.opacity < 1;
+}
+
 export class Palette {
   constructor(raw) {
     const data = normalizePalette(raw);
@@ -81,6 +110,33 @@ export class Palette {
       );
     }
     return offered[0] || null;
+  }
+
+  // Resolve either arm of the Chosen union to something renderable. A custom
+  // color has no catalog entry, so it carries its own hex and is always opaque.
+  resolve(chosen) {
+    if (isCustom(chosen)) {
+      return { id: null, name: chosen.custom, hex: chosen.custom.toLowerCase(), opacity: 1, custom: true };
+    }
+    const c = this.byId(chosen);
+    if (!c) return { id: null, name: String(chosen), hex: FALLBACK_HEX, opacity: 1, custom: false };
+    return { ...c, custom: false };
+  }
+
+  // three.js material properties for a chosen color.
+  //
+  // `depthWrite` stays true by default: a lone translucent part writing depth
+  // looks right, and disabling it lets a part show through itself. The caller
+  // flips it off only when translucent parts actually overlap — see
+  // syncTransparencySorting() in app.js. 03-ui-behavior.md#opacity-rendering
+  toMaterial(chosen) {
+    const c = this.resolve(chosen);
+    return {
+      color: c.hex,
+      transparent: c.opacity < 1,
+      opacity: c.opacity,
+      depthWrite: true,
+    };
   }
 }
 

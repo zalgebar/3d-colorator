@@ -76,6 +76,7 @@ function init() {
         state.selectedId = null;
         pieceList.updateSelection(null);
       }
+      syncTransparencySorting();
       if (!visible) viewer.frameView();
     },
   });
@@ -244,6 +245,7 @@ async function setPrint(idOrPrint) {
     await Promise.all(print.pieces.map((def) => loadPiece(print, def)));
 
     pieceList.build(print, state.palette, state.records, state.designOn);
+    syncTransparencySorting();
     editor.setGroup(viewer.group);
     viewer.frameView();
     showLoading(false);
@@ -262,14 +264,23 @@ async function loadPiece(print, def) {
   });
 
   const colorId = state.palette.defaultColorOf(def);
+  const m = state.palette.toMaterial(colorId);
   const material = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(state.palette.hexOf(colorId)),
+    color: new THREE.Color(m.color),
+    transparent: m.transparent,
+    opacity: m.opacity,
+    depthWrite: m.depthWrite,
     roughness: 0.55,
     metalness: 0.08,
     flatShading: true,
   });
 
   const mesh = new THREE.Mesh(geometry, material);
+  // Shadow maps have no notion of partial transparency, so a translucent piece
+  // casts a solid shadow. We accept that rather than dropping the shadow: in
+  // this app shadows mostly fall on neighbouring pieces and read as "this part
+  // is here", and a shadowless part looks detached from the assembly.
+  // 03-ui-behavior.md#opacity-rendering
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   mesh.userData.pieceId = def.id;
@@ -285,10 +296,41 @@ function setPieceColor(pieceId, colorId) {
   const rec = state.records.get(pieceId);
   if (!rec || !state.palette.has(colorId)) return false;
   rec.color = colorId;
-  rec.mesh.material.color.set(state.palette.hexOf(colorId));
+  applyColor(rec.mesh.material, colorId);
+  syncTransparencySorting();
   pieceList.updateSwatchActive(pieceId);
   markDirty();
   return true;
+}
+
+// Writes a chosen color onto a live material. Switching between opaque and
+// translucent changes the shader, so `needsUpdate` matters here.
+function applyColor(material, chosen) {
+  const m = state.palette.toMaterial(chosen);
+  material.color.set(m.color);
+  material.opacity = m.opacity;
+  if (material.transparent !== m.transparent) {
+    material.transparent = m.transparent;
+    material.needsUpdate = true;
+  }
+}
+
+// Translucent materials are depth-sorted back-to-front, but two overlapping
+// translucent parts still fight over the depth buffer. Writing depth is right
+// for a lone translucent part and wrong once they overlap, so pick per scene:
+// depthWrite off only when more than one translucent piece is on screen.
+// 03-ui-behavior.md#opacity-rendering
+function syncTransparencySorting() {
+  const overlapping =
+    [...state.records.values()].filter((rec) => rec.mesh.visible && rec.mesh.material.transparent)
+      .length > 1;
+  // Every material is revisited, not just the translucent ones: a piece that
+  // goes back to an opaque color must get its depth write restored.
+  state.records.forEach((rec) => {
+    const material = rec.mesh.material;
+    const write = material.transparent ? !overlapping : true;
+    if (material.depthWrite !== write) material.depthWrite = write;
+  });
 }
 
 // ---- design mode ----
@@ -487,9 +529,10 @@ function applyImportedConfig(text) {
     rec.mesh.scale.set(p.scale[0], p.scale[1], p.scale[2]);
     const colorId = state.palette.has(p.defaultColor) ? p.defaultColor : rec.color;
     rec.color = colorId;
-    rec.mesh.material.color.set(state.palette.hexOf(colorId));
+    applyColor(rec.mesh.material, colorId);
   });
 
+  syncTransparencySorting();
   pieceList.syncActive();
   if (state.selectedId) {
     const rec = state.records.get(state.selectedId);
