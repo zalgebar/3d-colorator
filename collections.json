@@ -1,0 +1,38 @@
+{
+  "version": 1,
+
+  "global": {
+    "about": {
+      "contact": "admin@zalgebar.com",
+      "donate": "zalgebar@rizful.com"
+    },
+    "submit": {
+      "enabled": true,
+      "channel": "nostr",
+      "recipient": "zalgebar",
+      "wellKnown": "https://zalgebar.com/.well-known/nostr.json",
+      "relays": ["wss://relay.0xchat.com", "wss://relay.primal.net", "wss://nos.lol"],
+      "fallbackPubkey": "784c354759228dbe27aed411ad047141ad24dd0387bdc18032701260ff1ed941",
+      "orderIdLabel": "Order ID",
+      "shops": [{ "label": "Browse the shop", "url": "https://zalgebar.com/shop" }]
+    },
+    "customColors": { "enabled": false }
+  },
+
+  "collections": {
+    "default": {
+      "name": "3D Colorator",
+      "tagline": "Color any 3D print",
+      "filter": null
+    },
+    "seedsigner": {
+      "name": "SeedSigner",
+      "tagline": "Enclosure Designer",
+      "filter": { "categories": ["seedsigner"] },
+      "submit": {
+        "orderIdLabel": "Order ID",
+        "shops": [{ "label": "Order a SeedSigner", "url": "https://zalgebar.com/shop" }]
+      }
+    }
+  }
+}

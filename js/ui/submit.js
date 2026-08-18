@@ -47,28 +47,47 @@ export function colorIdForHex(palette, hex) {
 export class DesignIO {
   constructor(els, ctx) {
     this.els = els;
-    this.ctx = ctx; // { getPrint, getRecords, getPalette, setPieceColor, onDirty }
+    this.ctx = ctx; // { getPrint, getRecords, getPalette, getCollection, setPieceColor }
     this.onetimeSk = null;
   }
 
-  // { pieceId: "#rrggbb" } — resolved from palette ids for wire compatibility
+  submitConfig() {
+    return this.ctx.getCollection().submit;
+  }
+
+  // Palette ids, as stored — the snapshot below carries what they meant.
   currentColors() {
-    const palette = this.ctx.getPalette();
     const colors = {};
     this.ctx.getRecords().forEach((rec, id) => {
-      colors[id] = palette.hexOf(rec.color);
+      colors[id] = rec.color;
     });
     return colors;
   }
 
+  // Only the colors actually used. A submission is an order record, so it has
+  // to survive the catalog being renamed or re-mixed afterwards (D8).
+  snapshot(colors) {
+    const palette = this.ctx.getPalette();
+    const snap = {};
+    Object.values(colors).forEach((id) => {
+      if (snap[id]) return;
+      const color = palette.byId(id);
+      if (color) snap[id] = { name: color.name, hex: color.hex, opacity: color.opacity };
+    });
+    return snap;
+  }
+
   payload(orderId, author) {
     const print = this.ctx.getPrint();
+    const colors = this.currentColors();
     return buildDesignPayload({
       orderId: orderId || "",
-      enclosure: print.id,
-      enclosureName: print.name,
+      collection: this.ctx.getCollection().id,
+      print: print.id,
+      printName: print.name,
       author: author || "",
-      colors: this.currentColors(),
+      colors,
+      snapshot: this.snapshot(colors),
     });
   }
 
@@ -111,6 +130,7 @@ export class DesignIO {
     const palette = this.ctx.getPalette();
     let applied = 0;
     let approximated = 0;
+    // v1 files store hex, v2 store ids; both are accepted.
     Object.entries(parsed.colors).forEach(([pieceId, value]) => {
       if (typeof value !== "string") return;
       let colorId = null;
@@ -194,7 +214,7 @@ export class DesignIO {
     const els = this.els;
     const orderId = els.orderId.value.trim();
     if (!orderId) {
-      this.status("Enter an Order ID first.", true);
+      this.status("Enter " + (this.submitConfig().orderIdLabel || "an Order ID") + " first.", true);
       els.orderId.focus();
       return;
     }
@@ -217,15 +237,16 @@ export class DesignIO {
     this.status("Sending…");
 
     const print = this.ctx.getPrint();
+    const config = this.submitConfig();
     const content = this.payload(orderId, identity.pubkey);
-    const recipient = await getRecipient();
+    const recipient = await getRecipient(config);
 
     try {
       const res = await sendDesign({
         recipient,
         identity,
         content,
-        subject: print.name + " design - order " + orderId,
+        subject: print.name + " design — " + (config.orderIdLabel || "order") + " " + orderId,
         onStatus: (m) => this.status(m),
       });
       if (res.ok > 0) {

@@ -1,17 +1,9 @@
 const NT = window.NostrTools;
 
-export const RECIPIENT_NAME = "zalgebar";
-const WELL_KNOWN_URL = "https://zalgebar.com/.well-known/nostr.json";
-const NSEC_STORE_KEY = "seedsigner.nsec";
-const DEFAULT_RELAYS = [
-  "wss://relay.0xchat.com",
-  "wss://relay.primal.net",
-  "wss://nos.lol",
-];
-const FALLBACK_RECIPIENT = {
-  pubkey: "784c354759228dbe27aed411ad047141ad24dd0387bdc18032701260ff1ed941",
-  relays: DEFAULT_RELAYS,
-};
+// Transport only — who the design goes to, over which relays, comes from the
+// active collection's submit config, not from constants here.
+const NSEC_STORE_KEY = "colorator.nsec";
+const LEGACY_NSEC_KEYS = ["seedsigner.nsec"];
 
 function dedupe(list) {
   return [...new Set(list.filter((x) => x && x.startsWith("wss://")))];
@@ -27,23 +19,39 @@ export function hasExtension() {
   );
 }
 
-export async function getRecipient() {
+// Resolves the collection's recipient name through its NIP-05 well-known file,
+// falling back to the configured pubkey and relays if that is unreachable.
+export async function getRecipient(config) {
+  const relaysFallback = dedupe(config.relays || []);
   try {
-    const res = await fetch(WELL_KNOWN_URL, { cache: "no-store" });
+    if (!config.wellKnown) throw new Error("no well-known url configured");
+    const res = await fetch(config.wellKnown, { cache: "no-store" });
     if (!res.ok) throw new Error("well-known fetch " + res.status);
     const data = await res.json();
-    const pubkey = (data.names || {})[RECIPIENT_NAME];
-    if (!pubkey) throw new Error("no pubkey for " + RECIPIENT_NAME);
+    const pubkey = (data.names || {})[config.recipient];
+    if (!pubkey) throw new Error("no pubkey for " + config.recipient);
     const relays = dedupe((data.relays || {})[pubkey] || []);
-    return relays.length ? { pubkey, relays } : { pubkey, relays: DEFAULT_RELAYS };
+    return { pubkey, relays: relays.length ? relays : relaysFallback };
   } catch (err) {
-    return { ...FALLBACK_RECIPIENT };
+    return { pubkey: config.fallbackPubkey, relays: relaysFallback };
   }
 }
 
+// Reads the current key, and adopts one saved under an older key so nobody
+// loses a stored nsec across the rename.
 export function savedNsec() {
   try {
-    return localStorage.getItem(NSEC_STORE_KEY) || "";
+    const current = localStorage.getItem(NSEC_STORE_KEY);
+    if (current) return current;
+    for (const legacy of LEGACY_NSEC_KEYS) {
+      const value = localStorage.getItem(legacy);
+      if (value) {
+        localStorage.setItem(NSEC_STORE_KEY, value);
+        localStorage.removeItem(legacy);
+        return value;
+      }
+    }
+    return "";
   } catch {
     return "";
   }
@@ -130,17 +138,22 @@ export async function sendDesign({ recipient, identity, content, subject, onStat
   return { wrapId: wrap.id, relays: relays.length, ok };
 }
 
-export function buildDesignPayload({ orderId, enclosure, enclosureName, colors, author }) {
+// v2 payload. Unlike a share link, a submission embeds a palette snapshot (D8):
+// it is the record of an order, so it has to stay meaningful even after the
+// catalog moves on.
+export function buildDesignPayload({ orderId, collection, print, printName, colors, snapshot, author }) {
   return JSON.stringify(
     {
-      app: "seedsigner-designer",
-      type: "enclosure-design",
-      version: 1,
+      app: "3d-colorator",
+      type: "print-design",
+      version: 2,
       orderId,
-      enclosure,
-      enclosureName,
+      collection,
+      print,
+      printName,
       author,
       colors,
+      snapshot,
     },
     null,
     2

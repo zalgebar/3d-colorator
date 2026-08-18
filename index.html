@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SeedSigner Enclosure Designer</title>
+<title>3D Colorator</title>
 <link rel="stylesheet" href="css/style.css">
 <script type="importmap">
 {
@@ -18,7 +18,7 @@
 </head>
 <body>
 <header class="topbar">
-  <div class="brand">SeedSigner <span>Enclosure Designer</span></div>
+  <div class="brand"><b id="brand-name">3D Colorator</b> <span id="brand-tagline"></span></div>
   <div class="topbar-right">
     <button id="btn-frame" class="btn">Fit Object in Frame</button>
     <button id="btn-origin" class="btn">Center Camera on Origin</button>
@@ -87,9 +87,9 @@
         <button id="btn-import-design" class="btn">Import Design</button>
       </div>
       <div class="btn-row">
-        <button id="btn-submit" class="btn primary">Submit via nostr DM</button>
+        <button id="btn-submit" class="btn primary" type="button">Submit design</button>
       </div>
-      <p class="hint">Save or submit your coloring as a JSON design, or download a PNG image of the current view. Submissions are sent as an encrypted NIP-17 direct message (order ID required).</p>
+      <p class="hint">Share a link to your coloring, save it as JSON, or download a PNG of the current view. Submissions are sent as an encrypted NIP-17 direct message.</p>
     </section>
 
     <section data-owner-only>
@@ -105,8 +105,8 @@
     <section id="about-section">
       <h2>About</h2>
       <p class="about-version"><strong>Version: </strong><span id="about-version">1.0.0</span><br/></p>
-      <p class="about-text"><strong>Contact: </strong>admin@zalgebar.com</p>
-      <p class="about-text"><strong>Donate: </strong>zalgebar@rizful.com</p>
+      <p class="about-text"><strong>Contact: </strong><span id="about-contact"></span></p>
+      <p class="about-text"><strong>Donate: </strong><span id="about-donate"></span></p>
     </section>
   </aside>
 
@@ -217,10 +217,10 @@
 </dialog>
 
 <dialog id="submit-dialog">
-  <h2>Submit design via nostr DM</h2>
+  <h2>Submit design</h2>
 
   <div class="form-row">
-    <label for="order-id">Order ID (<a href="https://zalgebar.com/shop">Order a SeedSigner here first!</a>)</label>
+    <label for="order-id"><span id="order-id-label">Order ID</span> <span id="submit-shops" class="shop-links"></span></label>
     <input id="order-id" type="text" autocomplete="off" placeholder="e.g. abc123">
   </div>
 

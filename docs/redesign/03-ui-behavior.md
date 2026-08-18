@@ -151,6 +151,28 @@ their kind, and shown as an **always-visible field** in the palette editor and t
 Why not auto-derive ids from names continuously: renaming would then silently break links, which
 is exactly what referencing by id exists to prevent.
 
+## Collections
+
+Mockup: [`collections-mockup.html`](mockups/collections-mockup.html)
+Schema: [01-data-model.md](01-data-model.md#collectionsjson)
+
+The active collection — `?collection=<id>`, defaulting to `default` — drives:
+
+| Surface | Source |
+| --- | --- |
+| `<title>`, topbar brand and tagline | `name`, `tagline` |
+| Which prints are listed | `filter.categories` (any-match); `null` = all |
+| Contact / donate in About | merged `about` |
+| Submit control visible? | `global.submit.enabled && collection` (three-state) |
+| Order-field label, recipient, relays, shop links | merged `submit` |
+
+An **unknown collection id falls back to `default`** rather than rendering an empty app. A
+collection whose filter matches no prints shows an explicit "No prints in this collection yet."
+— leaking another storefront's prints would be worse than an empty list.
+
+SeedSigner Designer is this app at `?collection=seedsigner`: same code, same deployment, its own
+name, print list and shop link.
+
 ## Viewport navigation
 
 Identical in both modes: **left-drag orbits, right-drag pans, wheel/middle dollies.** Design

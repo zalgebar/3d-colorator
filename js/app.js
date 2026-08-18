@@ -19,11 +19,13 @@ import { initFeedback, toast, showLoading } from "./ui/toast.js";
 import { initSidebarResizer } from "./ui/resizer.js";
 import { slugId, validateId } from "./data/ids.js";
 import { buildShareLink, parseShareLink, classifyShared } from "./ui/share.js";
+import { loadCollections, pickCollection, printsFor } from "./data/collections.js";
 import { paintSwatch, swatchTitle } from "./ui/swatch.js";
 
 const isOwner = new URLSearchParams(window.location.search).has("design");
 
 const state = {
+  collection: null,
   manifest: null,
   palette: null,
   print: null,
@@ -50,6 +52,8 @@ const els = {};
   "palette-count-inline", "palette-list", "btn-add-color",
   "piece-colors-dialog", "piece-colors-title", "piece-colors-body", "btn-piece-colors-close",
   "btn-piece-colors-cancel",
+  "brand-name", "brand-tagline", "about-contact", "about-donate",
+  "order-id-label", "submit-shops",
   "btn-copy-link", "reconcile-dialog", "reconcile-count", "reconcile-list",
   "btn-reconcile-cancel", "btn-reconcile-apply",
   "sidebar-resizer", "link-bar", "link-count", "link-add-slot", "btn-new-group",
@@ -235,6 +239,7 @@ function init() {
     getPrint: () => state.print,
     getRecords: () => state.records,
     getPalette: () => state.palette,
+    getCollection: () => state.collection,
     setPieceColor: (id, colorId) => setPieceColor(id, colorId),
   });
 
@@ -244,6 +249,32 @@ function init() {
   applyOwnerGating(isOwner);
   loadCatalog();
   viewer.start();
+}
+
+// Everything the active collection controls: what it is called, who it sends
+// to, and whether it can send at all.
+function applyBranding(collection) {
+  document.title = collection.tagline
+    ? collection.name + " — " + collection.tagline
+    : collection.name;
+  els.brandName.textContent = collection.name;
+  els.brandTagline.textContent = collection.tagline;
+  els.aboutContact.textContent = collection.about.contact || "";
+  els.aboutDonate.textContent = collection.about.donate || "";
+  els.orderIdLabel.textContent = collection.submit.orderIdLabel || "Order ID";
+
+  els.submitShops.innerHTML = "";
+  (collection.submit.shops || []).forEach((shop) => {
+    const a = document.createElement("a");
+    a.href = shop.url;
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.textContent = shop.label + " →";
+    els.submitShops.appendChild(a);
+  });
+
+  // The submit control only exists when global AND the collection allow it.
+  els.btnSubmit.classList.toggle("hidden", !collection.submit.enabled);
 }
 
 function applyOwnerGating(owner) {
@@ -351,18 +382,23 @@ function wireUI() {
 
 async function loadCatalog() {
   try {
-    const [manifest, palette] = await Promise.all([loadManifest(), loadPalette()]);
+    const share = parseShareLink(window.location.search);
+    const [manifest, palette, collections] = await Promise.all([
+      loadManifest(),
+      loadPalette(),
+      loadCollections(),
+    ]);
     state.manifest = manifest;
     state.palette = palette;
+    state.collection = pickCollection(collections, share.collection);
+    applyBranding(state.collection);
     if (els.aboutVersion && manifest.version) els.aboutVersion.textContent = manifest.version;
     buildPrintUI();
     paletteEditor.render();
-    if (manifest.prints.length) {
-      const share = parseShareLink(window.location.search);
+    const listed = visiblePrints();
+    if (listed.length) {
       const wanted =
-        share.print && manifest.prints.some((p) => p.id === share.print)
-          ? share.print
-          : manifest.prints[0].id;
+        share.print && listed.some((p) => p.id === share.print) ? share.print : listed[0].id;
       await setPrint(wanted);
       if (isOwner) setDesignMode(true);
       applySharedColors(share.colors);
@@ -372,9 +408,22 @@ async function loadCatalog() {
   }
 }
 
+function visiblePrints() {
+  return printsFor(state.collection, state.manifest.prints);
+}
+
 function buildPrintUI() {
   els.printList.innerHTML = "";
-  state.manifest.prints.forEach((entry) => {
+  const prints = visiblePrints();
+  if (!prints.length) {
+    // Better an honest empty state than leaking another collection's prints.
+    const empty = document.createElement("p");
+    empty.className = "print-empty";
+    empty.textContent = "No prints in this collection yet.";
+    els.printList.appendChild(empty);
+    return;
+  }
+  prints.forEach((entry) => {
     const card = document.createElement("div");
     card.className = "print-card";
     card.dataset.printId = entry.id;
