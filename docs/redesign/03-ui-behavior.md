@@ -43,10 +43,10 @@ handle in Phase 2 rather than retrofit:
 - **Seeing a piece's own internals**: a translucent print shows its interior ribs, bosses and
   far wall, and the preview must too — that definition is most of why someone picks translucent
   filament. Two things are needed together: `depthWrite: false`, so a near surface cannot
-  depth-reject the surfaces behind it, and `side: DoubleSide`, so interior wall faces are not
-  back-face culled. (An earlier draft preferred `depthWrite: true` for a lone translucent part
-  to stop it "showing through itself" — that is exactly the wrong call here, and it flattened
-  parts into featureless shells.)
+  depth-reject the surfaces behind it, and rendering interior wall faces at all rather than
+  back-face culling them — see the two-pass draw below. (An earlier draft preferred
+  `depthWrite: true` for a lone translucent part to stop it "showing through itself" — that is
+  exactly the wrong call here, and it flattened parts into featureless shells.)
 - **Draw order**: alpha blending is order-dependent, so with `depthWrite: false` the picture
   depends entirely on what is painted first. Two orderings have to be pinned down:
   - *Within a piece*: draw a **back-face pass then a front-face pass** (two meshes sharing one

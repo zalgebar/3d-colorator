@@ -13,6 +13,7 @@ import {
   GeometryCache,
 } from "./data/prints.js";
 import { PieceList } from "./ui/pieceList.js";
+import { PaletteEditor } from "./ui/paletteEditor.js";
 import { DesignIO } from "./ui/submit.js";
 import { initFeedback, toast, showLoading } from "./ui/toast.js";
 
@@ -41,11 +42,14 @@ const els = {};
   "identity-extension", "extension-pubkey", "identity-nsec", "nsec-input", "nsec-remember",
   "identity-onetime", "onetime-pubkey", "submit-preview", "submit-status",
   "btn-submit-send", "btn-submit-cancel", "loading", "toast", "viewport", "about-version",
+  "palette-section", "palette-head", "palette-count", "palette-list", "btn-add-color",
+  "btn-copy-palette", "btn-download-palette", "color-delete-dialog", "color-delete-msg",
+  "color-delete-uses", "btn-color-delete-cancel", "btn-color-delete-confirm",
 ].forEach((id) => {
   els[id.replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = document.getElementById(id);
 });
 
-let viewer, editor, pieceList, designIO;
+let viewer, editor, pieceList, designIO, paletteEditor;
 let gridVisible = isOwner;
 let axesVisible = isOwner;
 
@@ -70,6 +74,11 @@ function init() {
   pieceList = new PieceList(els.pieceList, {
     onSelect: (id) => editor.select(id),
     onColorChange: setPieceColor,
+    onOfferingChange: (pieceId) => {
+      repairPieceDefault(pieceId);
+      rebuildPieceList();
+      markDirty();
+    },
     onVisibilityChange: (id, visible) => {
       if (!visible && state.selectedId === id) {
         editor.detach();
@@ -78,6 +87,30 @@ function init() {
       }
       if (!visible) viewer.frameView();
     },
+  });
+
+  paletteEditor = new PaletteEditor(els, {
+    getPalette: () => state.palette,
+    // A hex/opacity edit must reach every piece already using that color.
+    onColorChanged: (color, opts) => {
+      state.records.forEach((rec) => {
+        if (rec.color === color.id) applyColor(rec, rec.color);
+      });
+      pieceList.repaintColors();
+      if (!opts || !opts.nameOnly) markDirty();
+      else markDirty();
+    },
+    onPaletteStructureChanged: () => {
+      rebuildPieceList();
+      markDirty();
+    },
+    usageOf: (colorId) => {
+      if (!state.print) return [];
+      return state.print.pieces.filter(
+        (def) => state.palette.offeredIds(def).includes(colorId) || def.defaultColor === colorId
+      );
+    },
+    removeColor: (colorId) => removeColorEverywhere(colorId),
   });
 
   designIO = new DesignIO(els, {
@@ -151,6 +184,9 @@ function wireUI() {
   els.btnSubmitSend.addEventListener("click", () => designIO.send());
   els.btnSubmitCancel.addEventListener("click", () => els.submitDialog.close());
 
+  els.btnCopyPalette.addEventListener("click", copyPalette);
+  els.btnDownloadPalette.addEventListener("click", downloadPalette);
+
   els.btnResetTransform.addEventListener("click", resetSelected);
   els.btnResetAll.addEventListener("click", resetAllTransforms);
   els.btnCopy.addEventListener("click", copyConfig);
@@ -190,6 +226,7 @@ async function loadCatalog() {
     state.palette = palette;
     if (els.aboutVersion && manifest.version) els.aboutVersion.textContent = manifest.version;
     buildPrintUI();
+    paletteEditor.render();
     if (manifest.prints.length) {
       await setPrint(manifest.prints[0].id);
       if (isOwner) setDesignMode(true);
@@ -315,12 +352,57 @@ async function loadPiece(print, def, index) {
   state.records.set(def.id, { mesh, backMesh, def, color: colorId });
 }
 
+function rebuildPieceList() {
+  if (!state.print) return;
+  pieceList.build(state.print, state.palette, state.records, state.designOn);
+}
+
+// Keep a piece's shown color inside its own offering — removing or restricting
+// colors can strand it. Falls back to the first color the piece still offers.
+function repairPieceDefault(pieceId) {
+  const rec = state.records.get(pieceId);
+  if (!rec) return false;
+  const offered = state.palette.offeredIds(rec.def);
+  if (offered.includes(rec.color)) return false;
+  const next = offered[0];
+  if (!next) return false;
+  rec.color = next;
+  rec.def.defaultColor = next;
+  applyColor(rec, next);
+  return true;
+}
+
+// Deleting a color has to unwind every reference to it: the catalog, each
+// piece's offered subset, and any piece currently showing it.
+function removeColorEverywhere(colorId) {
+  const palette = state.palette;
+  const i = palette.colors.findIndex((c) => c.id === colorId);
+  if (i >= 0) palette.colors.splice(i, 1);
+  palette._byId.delete(colorId);
+
+  if (state.print) {
+    state.print.pieces.forEach((def) => {
+      if (def.palette.length) def.palette = def.palette.filter((c) => c !== colorId);
+    });
+  }
+  let reassigned = 0;
+  state.records.forEach((rec, id) => {
+    if (repairPieceDefault(id)) reassigned++;
+  });
+
+  rebuildPieceList();
+  markDirty();
+  return { reassigned };
+}
+
 function setPieceColor(pieceId, colorId) {
   const rec = state.records.get(pieceId);
   if (!rec || !state.palette.has(colorId)) return false;
   rec.color = colorId;
+  // In design mode the choice *is* the piece's default, and exports as such.
+  if (state.designOn) rec.def.defaultColor = colorId;
   applyColor(rec, colorId);
-  pieceList.updateSwatchActive(pieceId);
+  pieceList.syncPiece(pieceId);
   markDirty();
   return true;
 }
@@ -465,6 +547,46 @@ function resetAllTransforms() {
 }
 
 // ---- print config export / import (owner) ----
+
+function palettePayload() {
+  const palette = state.palette;
+  return JSON.stringify(
+    {
+      version: palette.version,
+      colors: palette.colors.map((c) => ({
+        id: c.id,
+        name: c.name,
+        hex: c.hex,
+        opacity: c.opacity,
+      })),
+    },
+    null,
+    2
+  );
+}
+
+function copyPalette() {
+  const json = palettePayload();
+  const done = () => toast("palette.json copied to clipboard");
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(json).then(done).catch(() => fallbackCopy(json, done));
+  } else {
+    fallbackCopy(json, done);
+  }
+}
+
+function downloadPalette() {
+  const blob = new Blob([palettePayload()], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "palette.json";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast("Downloaded palette.json");
+}
 
 function exportJson() {
   return JSON.stringify(buildExportObject(state.print, state.records), null, 2);

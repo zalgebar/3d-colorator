@@ -41,10 +41,27 @@
       <p id="print-desc" class="desc"></p>
     </section>
 
+    <section data-owner-only class="palette-section" id="palette-section">
+      <div class="sec-head" id="palette-head">
+        <h2>Palette</h2>
+        <span class="count" id="palette-count"></span>
+        <span class="chev">▾</span>
+      </div>
+      <div class="sec-body">
+        <div id="palette-list" class="pal-list"></div>
+        <button id="btn-add-color" class="add-color" type="button">+ Add color</button>
+        <div class="btn-row">
+          <button id="btn-copy-palette" class="btn">Copy JSON</button>
+          <button id="btn-download-palette" class="btn">Download JSON</button>
+        </div>
+        <p class="hint">The shop-wide color catalog. Pieces reference colors by <b>id</b>, so renaming or re-mixing a color updates every piece at once. Download and commit <b>palette.json</b> to make changes permanent.</p>
+      </div>
+    </section>
+
     <section>
       <h2>Pieces</h2>
-      <p class="hint" data-public-only>Pick a color for each piece.</p>
-      <p class="hint hidden" data-owner-only>Pick a color for each piece. Click a piece in the viewport to move, rotate or scale it.</p>
+      <p class="hint" data-public-only>Choose a color for each piece.</p>
+      <p class="hint hidden" data-owner-only>Set which colors each piece offers, and its default. Click a piece in the viewport to move, rotate or scale it.</p>
       <div id="piece-list" class="piece-list"></div>
     </section>
 
@@ -102,6 +119,16 @@
     <div id="toast" class="toast hidden"></div>
   </div>
 </main>
+
+<dialog id="color-delete-dialog">
+  <h2>Delete this color?</h2>
+  <p class="hint" id="color-delete-msg"></p>
+  <p class="hint" id="color-delete-uses"></p>
+  <div class="dialog-actions">
+    <button id="btn-color-delete-cancel" class="btn">Cancel</button>
+    <button id="btn-color-delete-confirm" class="btn danger">Delete color</button>
+  </div>
+</dialog>
 
 <dialog id="import-dialog">
   <h2>Import config JSON</h2>
