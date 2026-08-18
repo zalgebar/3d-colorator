@@ -293,7 +293,7 @@ html, body {
   display: block;
 }
 
-.piece-eye:hover { color: var(--text); border-color: #3d4a58; }
+.piece-eye:hover:not(:disabled) { color: var(--text); border-color: #3d4a58; }
 
 .piece-eye.off { opacity: 0.45; }
 .piece-eye.off svg path.lens { display: none; }
@@ -754,8 +754,15 @@ dialog input[type="file"] {
   cursor: pointer;
 }
 
-.icon-btn:hover { color: var(--text); border-color: #3d4a58; }
-.icon-btn.danger:hover { color: var(--danger); border-color: var(--danger); }
+.icon-btn:hover:not(:disabled) { color: var(--text); border-color: #3d4a58; }
+.icon-btn.danger:hover:not(:disabled) { color: var(--danger); border-color: var(--danger); }
+.icon-btn.del:hover:not(:disabled) { color: var(--danger); border-color: var(--danger); }
+
+/* A disabled control has to look inert: no hover response, no pointer cursor. */
+.icon-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
 
 .add-color {
   margin-top: 8px;
@@ -911,7 +918,7 @@ dialog input[type="file"] {
   cursor: pointer;
 }
 
-.dd > button:hover { border-color: #3d4a58; }
+.dd > button:hover:not(:disabled) { border-color: #3d4a58; }
 .dd > button .nm { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dd > button .caret { color: var(--text-dim); }
 .dd > button:disabled { opacity: 0.5; cursor: default; }
@@ -1008,7 +1015,7 @@ dialog h2 .count {
   cursor: pointer;
 }
 
-.piece-colors-btn:hover { border-color: #3d4a58; }
+.piece-colors-btn:hover:not(:disabled) { border-color: #3d4a58; }
 .piece-colors-btn .nm { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .piece-colors-btn .count { color: var(--text-dim); font-size: 11px; white-space: nowrap; }
 .piece-colors-btn .caret { color: var(--text-dim); }
@@ -1152,7 +1159,7 @@ dialog h2 .count {
   cursor: pointer;
 }
 
-.unlink-btn:hover { color: var(--danger); border-color: var(--danger); }
+.unlink-btn:hover:not(:disabled) { color: var(--danger); border-color: var(--danger); }
 .unlink-btn svg { width: 14px; height: 14px; }
 
 /* ---------- id fields ---------- */
@@ -1254,7 +1261,7 @@ dialog h2 .count {
   cursor: pointer;
 }
 
-.piece-more:hover { color: var(--text); border-color: #3d4a58; }
+.piece-more:hover:not(:disabled) { color: var(--text); border-color: #3d4a58; }
 .piece-more.has-copies { color: var(--accent); border-color: var(--accent-dim); }
 
 .hint-inline { font-weight: 400; color: var(--text-dim); font-size: 11px; }
