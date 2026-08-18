@@ -80,21 +80,33 @@ current color and how many colors it offers. Piece rows accumulate controls as l
 duplication land, so the color offering gets its own surface rather than competing for sidebar
 width.
 
+The offering is a **vertical list of full-width rows**, one per offered color — the same shape
+the visitor sees in the dropdown. Rows are used rather than inline chips because chip width
+tracks the color's name, so a chip layout reflows as it is reordered and changes size between
+the two modes; a uniform row list keeps the dialog a fixed size while dragging.
+
+Each row: `⠿` drag handle · swatch · name · `%` (translucent only) · `★` · `✕`.
+
 **Offering: `Offer all` | `Restrict`**
 
-- **Offer all** (default for a new piece) — label reads
-  **"Offer All — no colors selected"**, chips render dashed/implicit showing the whole palette.
-  Stored as *no* `palette` key.
-- **Restrict** — explicit ordered chips.
+- **Offer all** (default for a new piece) — every palette color, in palette order. Stored as
+  *no* `palette` key. Rows carry **no drag handle and no remove button**: there is nothing to
+  curate, and the order is the palette's.
+- **Restrict** — an explicit, ordered subset.
 
 | Behavior | Rule |
 | --- | --- |
-| Chip | swatch + name. `★`/`☆` sets the piece default; `✕` removes from this piece only. |
-| Reorder | Drag chips. This is the order visitors see. |
-| Drag while "Offer all" | **Promotes to Restrict** with the dragged order — implicit order is palette order until you override it. |
-| Add | `+ add color ▾` menu of palette colors not yet offered. The future paid **Custom color…** entry lives at the bottom of this menu. |
-| Minimum | Cannot remove the last chip in Restrict mode. |
+| Set default | Click the row. `★` marks it; that color is what the viewport shows and what exports as `defaultColor`. |
+| Reorder | Drag `⠿`, **Restrict only**. This is the order visitors see. |
+| Remove | `✕`, **Restrict only** — removes from this piece, never from the palette. |
+| Add | "+ Add a color" opens a menu of palette colors not yet offered. The future paid **Custom color…** entry lives at the bottom of it. |
+| Minimum | Cannot remove the last remaining color. |
 | Reset | "↺ Offer all instead" returns to the unrestricted state. |
+
+Reordering is deliberately absent from *Offer all*: "offer everything in a custom order" can
+only be stored as an explicit list, which is precisely what *Restrict* is. An earlier build let
+a drag silently switch the mode, which read as the UI changing a setting the user had not
+touched. Switch to *Restrict* to order colors.
 
 ---
 

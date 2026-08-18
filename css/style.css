@@ -799,68 +799,45 @@ dialog input[type="file"] {
 .offer-note { font-size: 11px; color: var(--text-dim); min-width: 0; }
 .offer-note b { color: var(--text); }
 
-.chips {
+/* One full-width row per offered color — same shape as the visitor's dropdown
+   list, and uniform height so reordering never resizes the dialog. */
+.subset-list {
   display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  align-items: center;
+  flex-direction: column;
+  gap: 3px;
   padding: 5px;
   border: 1px solid var(--border);
   border-radius: 7px;
   background: var(--bg);
+  max-height: 46vh;
+  overflow-y: auto;
 }
 
-.chips.implicit { border-style: dashed; }
-
-.chip {
-  display: inline-flex;
+.subset-row {
+  display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 2px 6px 2px 3px;
-  border: 1px solid var(--border);
-  border-radius: 20px;
+  gap: 9px;
+  padding: 5px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
   background: var(--bg-3);
-  cursor: grab;
-  touch-action: none;
-  user-select: none;
-  font-size: 12px;
-}
-
-.chip.dragging { opacity: 0.5; }
-.chip.compact { padding: 2px 4px 2px 3px; gap: 3px; }
-.chip.is-default { border-color: var(--accent); background: rgba(79, 140, 255, 0.14); }
-.chip .star { color: var(--text-dim); font-size: 11px; line-height: 1; }
-.chip.is-default .star { color: #ffd23f; }
-.chip .nm { white-space: nowrap; }
-.chip .rm { cursor: pointer; color: var(--text-dim); font-size: 12px; line-height: 1; padding: 0 1px; }
-.chip .rm:hover { color: var(--danger); }
-
-.chip-sw {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  flex-shrink: 0;
-}
-
-.chip-add { position: relative; display: inline-flex; }
-
-.chip-add > button {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  border: 1px dashed var(--border);
-  border-radius: 20px;
-  background: var(--bg);
-  color: var(--text-dim);
-  font-size: 12px;
-  font-weight: 600;
   cursor: pointer;
+  font-size: 13px;
 }
 
-.chip-add > button:hover:not(:disabled) { color: var(--text); border-color: #5b6b7c; }
-.chip-add > button:disabled { opacity: 0.4; cursor: default; }
+.subset-row:hover { border-color: #3d4a58; }
+.subset-row.is-default { border-color: var(--accent); background: rgba(79, 140, 255, 0.14); }
+.subset-row.dragging { opacity: 0.5; }
+.subset-row .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.subset-row .op { font-family: Consolas, monospace; font-size: 11px; color: var(--text-dim); }
+.subset-row .star { color: var(--text-dim); font-size: 13px; line-height: 1; }
+.subset-row.is-default .star { color: #ffd23f; }
+.subset-row .rm { width: 22px; height: 22px; font-size: 12px; }
+.subset-row .grip { width: 12px; flex-shrink: 0; }
+.subset-row .grip.inert { cursor: default; }
+
+.subset-add { position: relative; }
+.subset-add .add-color { margin-top: 8px; }
 
 .linky {
   background: none;
@@ -992,7 +969,6 @@ dialog h2 .count {
 }
 
 #piece-colors-body { margin-top: 10px; }
-#piece-colors-body .chips { max-height: 44vh; overflow-y: auto; }
 
 .btn.wide { width: 100%; text-align: left; }
 

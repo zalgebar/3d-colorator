@@ -20,7 +20,7 @@ export function closeMenus() {
 }
 
 function closeMenusOnOutside(e) {
-  if (e.target.closest(".menu") || e.target.closest(".dd > button") || e.target.closest(".chip-add > button")) return;
+  if (e.target.closest(".menu") || e.target.closest(".dd > button") || e.target.closest(".subset-add > button")) return;
   closeMenus();
 }
 
@@ -78,7 +78,7 @@ export class PieceList {
       else row.appendChild(this.buildDropdown(def));
 
       row.addEventListener("click", (e) => {
-        if (e.target.closest("button, .chips, .dd, input")) return;
+        if (e.target.closest("button, .subset-list, .dd, input")) return;
         const rec = this.records.get(def.id);
         if (!rec || !rec.mesh.visible) return;
         if (this.designOn && this.onSelect) this.onSelect(def.id);
@@ -229,13 +229,11 @@ export class PieceList {
     bRestrict.type = "button";
     bRestrict.textContent = "Restrict";
     if (restricted) bRestrict.className = "active";
-    bAll.addEventListener("click", (e) => {
-      e.stopPropagation();
+    bAll.addEventListener("click", () => {
       def.palette = [];
       this.onOfferingChange(def.id);
     });
-    bRestrict.addEventListener("click", (e) => {
-      e.stopPropagation();
+    bRestrict.addEventListener("click", () => {
       if (!def.palette.length) def.palette = this.palette.ids.slice();
       this.onOfferingChange(def.id);
     });
@@ -244,42 +242,44 @@ export class PieceList {
 
     const note = document.createElement("span");
     note.className = "offer-note";
+    // Reordering is only meaningful under Restrict: "offer all in a custom
+    // order" would have to be stored as an explicit list, which *is* Restrict.
+    // Rather than silently switching mode under the user, drag is simply not
+    // offered here.
     note.innerHTML = restricted
       ? def.palette.length + " offered · drag to reorder"
-      : "<b>Offer All</b> — no colors selected";
+      : "All " + this.palette.colors.length + " colors, in palette order";
     offer.appendChild(note);
     container.appendChild(offer);
 
-    const chips = document.createElement("div");
-    chips.className = "chips" + (restricted ? "" : " implicit");
+    const list = document.createElement("div");
+    list.className = "subset-list";
     this.palette.offeredIds(def).forEach((colorId) => {
-      chips.appendChild(this.makeChip(def, colorId, chips, restricted));
+      list.appendChild(this.makeSubsetRow(def, colorId, list, restricted));
     });
+    container.appendChild(list);
 
     if (restricted) {
       const remaining = this.palette.ids.filter((id) => !def.palette.includes(id));
-      const add = document.createElement("span");
-      add.className = "chip-add";
+      const add = document.createElement("div");
+      add.className = "subset-add";
       const addBtn = document.createElement("button");
       addBtn.type = "button";
-      addBtn.textContent = "+ add ▾";
+      addBtn.className = "add-color";
+      addBtn.textContent = remaining.length ? "+ Add a color" : "Every palette color is already offered";
       addBtn.disabled = remaining.length === 0;
       addBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         this.openAddMenu(add, def, remaining);
       });
       add.appendChild(addBtn);
-      chips.appendChild(add);
-    }
-    container.appendChild(chips);
+      container.appendChild(add);
 
-    if (restricted) {
       const reset = document.createElement("button");
       reset.type = "button";
       reset.className = "linky";
       reset.textContent = "↺ Offer all instead";
-      reset.addEventListener("click", (e) => {
-        e.stopPropagation();
+      reset.addEventListener("click", () => {
         def.palette = [];
         this.onOfferingChange(def.id);
       });
@@ -287,45 +287,55 @@ export class PieceList {
     }
   }
 
-  makeChip(def, colorId, container, restricted) {
+  // One full-width row per color, matching what the visitor sees in the
+  // dropdown. Uniform height means reordering can never resize the dialog.
+  makeSubsetRow(def, colorId, list, restricted) {
     const rec = this.records.get(def.id);
     const color = this.palette.resolve(colorId);
     const isDefault = rec && rec.color === colorId;
 
-    const chip = document.createElement("span");
-    chip.className = "chip" + (isDefault ? " is-default" : "");
-    chip.dataset.color = colorId;
-    chip.title = swatchTitle(color) + (isDefault ? " — this piece's default" : " — click to make default");
+    const row = document.createElement("div");
+    row.className = "subset-row" + (isDefault ? " is-default" : "");
+    row.dataset.color = colorId;
+    row.title = isDefault ? "This piece's default" : "Click to make this the default";
+
+    const grip = document.createElement("span");
+    grip.className = "grip";
+    grip.textContent = restricted ? "⠿" : "";
+    if (restricted) {
+      grip.title = "Drag to reorder";
+      this.attachSubsetDrag(grip, row, def, list);
+    } else {
+      grip.classList.add("inert");
+    }
+    row.appendChild(grip);
+
+    const sw = document.createElement("span");
+    sw.className = "dd-sw";
+    paintSwatch(sw, color);
+    row.appendChild(sw);
+
+    const nm = document.createElement("span");
+    nm.className = "nm";
+    nm.textContent = color.name;
+    row.appendChild(nm);
+
+    if (color.opacity < 1) {
+      const op = document.createElement("span");
+      op.className = "op";
+      op.textContent = Math.round(color.opacity * 100) + "%";
+      row.appendChild(op);
+    }
 
     const star = document.createElement("span");
     star.className = "star";
     star.textContent = isDefault ? "★" : "☆";
-    const sw = document.createElement("span");
-    sw.className = "chip-sw";
-    paintSwatch(sw, color);
-    chip.append(star, sw);
-    // In "offer all" you are not curating, so chips collapse to swatches — with
-    // 15 colors across several pieces, named chips make the sidebar unusable.
-    if (restricted) {
-      const nm = document.createElement("span");
-      nm.className = "nm";
-      nm.textContent = color.name;
-      chip.appendChild(nm);
-    } else {
-      chip.classList.add("compact");
-    }
-
-    // Clicking a chip makes it the piece's default — which is also the color
-    // shown in the viewport and written out as defaultColor.
-    chip.addEventListener("click", (e) => {
-      if (e.target.closest(".rm")) return;
-      e.stopPropagation();
-      if (this.onColorChange) this.onColorChange(def.id, colorId);
-    });
+    row.appendChild(star);
 
     if (restricted) {
-      const rm = document.createElement("span");
-      rm.className = "rm";
+      const rm = document.createElement("button");
+      rm.type = "button";
+      rm.className = "icon-btn danger rm";
       rm.textContent = "✕";
       rm.title = "Remove from this piece";
       rm.addEventListener("click", (e) => {
@@ -337,11 +347,17 @@ export class PieceList {
         def.palette = def.palette.filter((c) => c !== colorId);
         this.onOfferingChange(def.id);
       });
-      chip.appendChild(rm);
+      row.appendChild(rm);
     }
 
-    this.attachChipDrag(chip, def, container, !restricted);
-    return chip;
+    // Clicking the row makes it the piece's default — the color shown in the
+    // viewport and written out as defaultColor.
+    row.addEventListener("click", (e) => {
+      if (e.target.closest(".rm, .grip")) return;
+      if (this.onColorChange) this.onColorChange(def.id, colorId);
+    });
+
+    return row;
   }
 
   openAddMenu(anchor, def, remaining) {
@@ -375,49 +391,42 @@ export class PieceList {
     setTimeout(() => document.addEventListener("pointerdown", closeMenusOnOutside, { once: true }), 0);
   }
 
-  // Stable insertion in reading order: walk the chips in DOM order and drop
-  // before the first one the cursor has not yet reached — either on an earlier
-  // row, or on the same row and left of its centre. Advancing the pointer can
-  // only ever move that target forward, so a neighbour reflowing underneath the
-  // cursor cannot bounce the chip back and forth.
-  attachChipDrag(chip, def, container, promote) {
-    chip.addEventListener("pointerdown", (e) => {
-      if (e.button !== 0 || e.target.closest(".rm")) return;
+  // Vertical reorder, same shape as the palette editor: document-level
+  // listeners with a movement threshold, and a single midpoint comparison per
+  // sibling so the drop target can only move one way as the pointer travels.
+  attachSubsetDrag(handle, row, def, list) {
+    handle.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return;
       e.preventDefault();
-      const startX = e.clientX;
+      e.stopPropagation();
       const startY = e.clientY;
       let dragging = false;
 
       const move = (ev) => {
         if (!dragging) {
-          if (Math.hypot(ev.clientX - startX, ev.clientY - startY) < 5) return;
+          if (Math.abs(ev.clientY - startY) < 4) return;
           dragging = true;
-          chip.classList.add("dragging");
+          row.classList.add("dragging");
         }
-        let ref = null;
-        for (const other of container.querySelectorAll(".chip:not(.dragging)")) {
+        let after = null;
+        for (const other of list.querySelectorAll(".subset-row:not(.dragging)")) {
           const b = other.getBoundingClientRect();
-          const onEarlierRow = ev.clientY < b.top;
-          const beforeOnThisRow = ev.clientY <= b.bottom && ev.clientX < b.left + b.width / 2;
-          if (onEarlierRow || beforeOnThisRow) {
-            ref = other;
+          if (ev.clientY < b.top + b.height / 2) {
+            after = other;
             break;
           }
         }
-        if (!ref) ref = container.querySelector(".chip-add");
-        if (chip.nextElementSibling !== ref) container.insertBefore(chip, ref);
+        if (after) list.insertBefore(row, after);
+        else list.appendChild(row);
       };
 
       const up = () => {
         document.removeEventListener("pointermove", move);
         document.removeEventListener("pointerup", up);
         if (!dragging) return;
-        chip.classList.remove("dragging");
-        const order = [...container.querySelectorAll(".chip")].map((c) => c.dataset.color);
-        // Reordering an implicit "offer all" list is a decision to curate it.
-        def.palette = order;
+        row.classList.remove("dragging");
+        def.palette = [...list.querySelectorAll(".subset-row")].map((r) => r.dataset.color);
         this.onOfferingChange(def.id);
-        toast(promote ? "Now restricted to this order" : "Reordered offered colors");
       };
 
       document.addEventListener("pointermove", move);
@@ -425,25 +434,27 @@ export class PieceList {
     });
   }
 
+
   // ---- shared state ----
 
   rowFor(id) {
     return this.root.querySelector('.piece-row[data-piece-id="' + id + '"]');
   }
 
-  // The chips are in the dialog, not the sidebar row.
+  // The offered-color rows live in the dialog, not the sidebar row.
   refreshChips(id) {
     const rec = this.records.get(id);
     if (!rec || !this.dialogEls || this.openPieceId !== id) return;
-    this.dialogEls.body.querySelectorAll(".chip").forEach((chip) => {
-      const isDefault = chip.dataset.color === rec.color;
-      chip.classList.toggle("is-default", isDefault);
-      chip.querySelector(".star").textContent = isDefault ? "★" : "☆";
+    this.dialogEls.body.querySelectorAll(".subset-row").forEach((row) => {
+      const isDefault = row.dataset.color === rec.color;
+      row.classList.toggle("is-default", isDefault);
+      row.querySelector(".star").textContent = isDefault ? "★" : "☆";
+      row.title = isDefault ? "This piece's default" : "Click to make this the default";
     });
   }
 
   // Repaint every surface showing a piece's color: the visitor dropdown, the
-  // owner's row launcher, and the chips in the open dialog.
+  // owner's row launcher, and the rows in the open dialog.
   syncPiece(id) {
     const def = this.print && this.print.pieces.find((p) => p.id === id);
     const row = this.rowFor(id);
