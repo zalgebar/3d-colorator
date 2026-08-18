@@ -871,6 +871,17 @@ export class PieceList {
     if (!els) return;
     els.close.addEventListener("click", () => els.dialog.close());
 
+    els.nameInput.addEventListener("input", () => {
+      const before = this.pieceInfoId;
+      const settled = this.pieceApi.renameLabel(before, els.nameInput.value);
+      // the id may have followed the label, if it was still unfixed
+      if (settled && settled !== before) {
+        this.pieceInfoId = settled;
+        els.idInput.value = settled;
+      }
+      els.title.textContent = els.nameInput.value;
+    });
+
     els.idInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") els.idInput.blur();
     });
@@ -930,6 +941,7 @@ export class PieceList {
     if (!els || !def) return;
 
     els.title.textContent = def.label;
+    els.nameInput.value = def.label;
     els.idInput.value = def.id;
 
     const inst = this.pieceApi.instanceIndex(def.id);

@@ -235,7 +235,12 @@ Duplication is a primary authoring action, so it sits **on the piece row**, not 
 | **Duplicate** `⧉` | row | One copy — new id, `"Label N"`, stepped along X by the STL's own width, fully independent. Copies do **not** inherit the original's link group. |
 | **Duplicate several** (layers) | row → dialog | Integer count (1–24) + "Link all copies (and the original) so they always share one color" (default on). When checked it forms a real link group by reusing the Phase 4 mechanism. |
 | **Remove** (trash) | row | **Disabled when it is the only instance of that STL**, with a tooltip pointing at the print/repo instead. |
-| `⋯` | row → dialog | The occasional things only: editable slug id (same rules as colors and groups) and the STL filename with its full path. Renaming rewrites link membership and the live record. |
+| `⋯` | row → dialog | The occasional things only: the piece's **Name**, its editable slug **id**, and the STL filename with its full path. Renaming the id rewrites link membership and the live record. |
+
+A duplicate's label is generated (`"Thumbstick 2"`), so its **id is left unfixed and tracks the
+label**: renaming the copy to "Left Thumbstick" also moves its id to `left_thumbstick`. Editing
+the id by hand fixes it, and a piece loaded from a file is fixed on arrival — the same
+`idFixed` rule groups use.
 
 The offset steps from how many instances already exist, not from a loop counter, so duplicating
 one at a time marches copies along rather than restacking them at the same spot.

@@ -220,6 +220,8 @@ There is no `instanceOf` field. A duplicate is simply another piece entry with t
 `⧉ n/N` badge. Consequences:
 
 - Each instance has its own `id`, `label`, transform, offering and color.
+- A duplicate's `label` is generated, so its id tracks the label until either is edited by
+  hand (in-memory `idFixed`, stripped on export).
 - **The last remaining instance of an STL cannot be deleted** in the UI — if a print doesn't
   need a part, remove the STL from the print/repo instead.
 - The loader must **cache parsed geometry by `file`** so N instances cost one fetch and one

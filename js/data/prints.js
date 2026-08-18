@@ -25,6 +25,9 @@ export function normalizePiece(raw, fallbackId) {
     defaultColor: def.defaultColor ? String(def.defaultColor) : null,
     // optional subset of palette ids; absent/empty means "offer all"
     palette: Array.isArray(def.palette) ? def.palette.map(String) : [],
+    // An id read from a file is deliberate. Duplicates set this false so their
+    // id can track the label until it is set by hand. Stripped on export.
+    idFixed: true,
   };
 }
 
@@ -106,6 +109,7 @@ export function buildExportObject(print, records) {
       const rec = records.get(def.id);
       const t = rec ? transformToArray(rec.mesh) : def;
       const piece = {
+        // idFixed is UI-only bookkeeping and never written out
         id: def.id,
         label: def.label,
         file: def.file,

@@ -49,7 +49,7 @@ const els = {};
   "piece-colors-dialog", "piece-colors-title", "piece-colors-body", "btn-piece-colors-close",
   "btn-piece-colors-cancel",
   "sidebar-resizer", "link-bar", "link-count", "link-add-slot", "btn-new-group",
-  "piece-dialog", "piece-dialog-title", "piece-id-input", "piece-stl", "piece-instances",
+  "piece-dialog", "piece-dialog-title", "piece-name-input", "piece-id-input", "piece-stl", "piece-instances",
   "piece-dup-hint", "btn-piece-dialog-close", "duplicate-dialog", "duplicate-title", "duplicate-count",
   "duplicate-link", "btn-duplicate-cancel", "btn-duplicate-create",
   "btn-copy-palette", "btn-download-palette", "color-delete-dialog", "color-delete-msg",
@@ -110,7 +110,15 @@ function init() {
       },
       canDelete: canDeletePiece,
       remove: deletePiece,
-      renameId: renamePieceId,
+      renameId: (from, to) => {
+        const problem = renamePieceId(from, to);
+        if (!problem) {
+          const def = state.print.pieces.find((p) => p.id === to);
+          if (def) def.idFixed = true;
+        }
+        return problem;
+      },
+      renameLabel: renamePieceLabel,
       duplicate: async (pieceId, count, link) => {
         const created = duplicatePiece(pieceId, count);
         if (!created.length) return null;
@@ -204,6 +212,7 @@ function init() {
   pieceList.wirePieceInfo({
     dialog: els.pieceDialog,
     title: els.pieceDialogTitle,
+    nameInput: els.pieceNameInput,
     idInput: els.pieceIdInput,
     stl: els.pieceStl,
     instances: els.pieceInstances,
@@ -502,6 +511,7 @@ function duplicatePiece(pieceId, count = 1) {
     const copy = {
       ...def,
       id: slugId(label, taken, "piece"),
+      idFixed: false, // tracks the label until the id is edited by hand
       label,
       palette: def.palette.slice(),
       position: offsetFor(def, step),
@@ -568,6 +578,27 @@ function deletePiece(pieceId) {
   viewer.frameView();
   markDirty();
   return true;
+}
+
+// Renaming a piece's display label. While its id is still unfixed — which is
+// the case for a fresh duplicate, whose label is auto-generated — the id
+// follows, so fixing up "Thumbstick 2" also fixes up thumbstick_2.
+function renamePieceLabel(pieceId, label) {
+  const def = state.print.pieces.find((p) => p.id === pieceId);
+  if (!def) return pieceId;
+  def.label = label;
+  markDirty();
+
+  if (!def.idFixed) {
+    const taken = new Set([...pieceIds()].filter((x) => x !== def.id));
+    const next = slugId(label, taken, "piece");
+    if (next !== def.id) {
+      renamePieceId(def.id, next);
+      return next;
+    }
+  }
+  rebuildPieceList();
+  return def.id;
 }
 
 // A piece id is referenced by link membership and by the live record map.
