@@ -838,8 +838,14 @@ export class PieceList {
     this.refreshChips(id);
   }
 
+  // Every piece row, including those nested inside a group's body — not just
+  // the list's direct children.
+  allRows() {
+    return [...this.root.querySelectorAll(".piece-row[data-piece-id]")];
+  }
+
   syncActive() {
-    [...this.root.children].forEach((row) => this.syncPiece(row.dataset.pieceId));
+    this.allRows().forEach((row) => this.syncPiece(row.dataset.pieceId));
   }
 
   // A palette edit can change any color's appearance or name, so repaint all.
@@ -869,7 +875,7 @@ export class PieceList {
 
   updateSelection(selectedId) {
     this.selectedId = selectedId;
-    [...this.root.children].forEach((row) => {
+    this.allRows().forEach((row) => {
       row.classList.toggle("selected", row.dataset.pieceId === selectedId);
     });
   }
