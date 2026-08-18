@@ -107,7 +107,7 @@ The one-way door. Everything else depends on it.
 
 ## Phase 3 — palette editor & subset UI
 
-Mockup: [`mockups/palette-mockup.html`](../../mockups/palette-mockup.html).
+Mockup: [`mockups/palette-mockup.html`](mockups/palette-mockup.html).
 Spec: [03-ui-behavior.md](03-ui-behavior.md#palette-editor-owner).
 
 1. **Palette editor** (owner, collapsible section): reorder, rename, hex picker + text field,
@@ -126,7 +126,7 @@ Spec: [03-ui-behavior.md](03-ui-behavior.md#palette-editor-owner).
 
 ## Phase 4 — piece linking
 
-Mockup: [`mockups/linking-mockup.html`](../../mockups/linking-mockup.html).
+Mockup: [`mockups/linking-mockup.html`](mockups/linking-mockup.html).
 Spec: [03-ui-behavior.md](03-ui-behavior.md#piece-linking).
 
 1. `links[]` in the print schema; normalize + validate (≥2 members, no piece in two groups).
@@ -143,7 +143,7 @@ the mockup in both modes.
 
 ## Phase 5 — STL duplication
 
-Mockup: [`mockups/duplication-mockup.html`](../../mockups/duplication-mockup.html).
+Mockup: [`mockups/duplication-mockup.html`](mockups/duplication-mockup.html).
 Spec: [03-ui-behavior.md](03-ui-behavior.md#stl-duplication).
 
 1. `⧉` duplicate once — new unique id, `"Label N"`, small transform offset, independent color.
@@ -160,7 +160,7 @@ transformed and colored independently.
 
 ## Phase 6 — share links & reconciliation
 
-Mockup: [`mockups/sharing-mockup.html`](../../mockups/sharing-mockup.html).
+Mockup: [`mockups/sharing-mockup.html`](mockups/sharing-mockup.html).
 Spec: [03-ui-behavior.md](03-ui-behavior.md#share--reconcile).
 
 1. **Encode**: build the URL from the current coloring (`ui/share.js`); a **Copy link** button
@@ -179,7 +179,7 @@ dialog; renaming a color changes nothing.
 
 ## Phase 7 — collections & branding
 
-Mockup: [`mockups/collections-mockup.html`](../../mockups/collections-mockup.html).
+Mockup: [`mockups/collections-mockup.html`](mockups/collections-mockup.html).
 Spec: [03-ui-behavior.md](03-ui-behavior.md#collections--branding).
 
 1. `collections.json` + `data/collections.js`: load, resolve `?collection=`, **unknown id

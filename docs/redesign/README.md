@@ -9,7 +9,7 @@ Turning **SeedSigner Enclosure Designer** into **3D Colorator**, a general-purpo
 | [02-implementation-phases.md](02-implementation-phases.md) | Ordered, independently shippable phases with acceptance criteria. |
 | [03-ui-behavior.md](03-ui-behavior.md) | Behavior specs for each UI surface, derived from the mockups. |
 
-Interactive mockups of every surface live in [`mockups/`](../../mockups/) — open them in a
+Interactive mockups of every surface live in [`mockups/`](mockups/) — open them in a
 browser. They are the visual source of truth for this plan.
 
 ---

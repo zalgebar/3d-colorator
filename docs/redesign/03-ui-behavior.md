@@ -1,6 +1,6 @@
 # UI behavior specs
 
-Derived from the interactive mockups in [`mockups/`](../../mockups/) — open those for the
+Derived from the interactive mockups in [`mockups/`](mockups/) — open those for the
 visual reference; this file records the rules behind them.
 
 Two audiences throughout:
@@ -12,7 +12,7 @@ Two audiences throughout:
 
 ## Palette editor (owner)
 
-Mockup: [`palette-mockup.html`](../../mockups/palette-mockup.html)
+Mockup: [`palette-mockup.html`](mockups/palette-mockup.html)
 
 A collapsible sidebar section above Pieces. App-wide, so it persists across print switches.
 
@@ -84,7 +84,7 @@ A **swatch dropdown**, not a grid (a native `<select>` can't show swatches):
 
 ## Piece linking
 
-Mockup: [`linking-mockup.html`](../../mockups/linking-mockup.html)
+Mockup: [`linking-mockup.html`](mockups/linking-mockup.html)
 
 Linked pieces **always share one color**. Transforms and visibility stay per piece.
 
@@ -128,7 +128,7 @@ substitute a placeholder like "Untitled group".
 
 ## STL duplication
 
-Mockup: [`duplication-mockup.html`](../../mockups/duplication-mockup.html)
+Mockup: [`duplication-mockup.html`](mockups/duplication-mockup.html)
 
 | Control | Behavior |
 | --- | --- |
@@ -145,7 +145,7 @@ mechanism as [Piece linking](#piece-linking), not a parallel one.
 
 ## Share & reconcile
 
-Mockup: [`sharing-mockup.html`](../../mockups/sharing-mockup.html)
+Mockup: [`sharing-mockup.html`](mockups/sharing-mockup.html)
 Grammar + classification table: [01-data-model.md](01-data-model.md#share-links-d6-d7)
 
 ### Composing
@@ -175,7 +175,7 @@ Copy rule: never claim to know what an unknown id looked like.
 
 ## Collections & branding
 
-Mockup: [`collections-mockup.html`](../../mockups/collections-mockup.html)
+Mockup: [`collections-mockup.html`](mockups/collections-mockup.html)
 Schema: [01-data-model.md](01-data-model.md#collectionsjson)
 
 The active collection drives:
