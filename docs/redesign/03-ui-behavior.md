@@ -227,18 +227,22 @@ substitute a placeholder like "Untitled group".
 
 Mockup: [`duplication-mockup.html`](mockups/duplication-mockup.html)
 
-Duplication lives in a **per-piece dialog**, opened from a compact launcher on the piece row —
-`⋯` normally, `⧉` once the piece has copies. The row itself already carries selection, linking
-and visibility, so these controls get their own surface rather than crowding it.
+Duplication is a primary authoring action, so it sits **on the piece row**, not behind a menu.
 
-| Control | Behavior |
-| --- | --- |
-| Id | Editable slug, same rules as colors and groups — see *Slug ids*. Renaming rewrites link membership and the live record. |
-| STL chip | Mono filename, full path on hover — makes the shared source obvious. |
-| `⧉ n of N` badge | Derived by grouping pieces on `file`. Shown only when N > 1. |
-| **Duplicate** | One copy — new id, `"Label N"`, stepped along X by the STL's own width, fully independent. Copies do **not** inherit the original's link group. |
-| **Duplicate & Link…** | Dialog: integer count (1–24) + "Link all copies (and the original) so they always share one color" (default on). When checked it forms a real link group by reusing the Phase 4 mechanism. |
-| **Remove this instance** | **Disabled when it is the only instance of that STL**, with a tooltip pointing at the print/repo instead. |
+| Control | Where | Behavior |
+| --- | --- | --- |
+| `⧉ n/N` badge | row | Derived by grouping pieces on `file`. Shown only when N > 1. |
+| **Duplicate** `⧉` | row | One copy — new id, `"Label N"`, stepped along X by the STL's own width, fully independent. Copies do **not** inherit the original's link group. |
+| **Duplicate several** (layers) | row → dialog | Integer count (1–24) + "Link all copies (and the original) so they always share one color" (default on). When checked it forms a real link group by reusing the Phase 4 mechanism. |
+| **Remove** (trash) | row | **Disabled when it is the only instance of that STL**, with a tooltip pointing at the print/repo instead. |
+| `⋯` | row → dialog | The occasional things only: editable slug id (same rules as colors and groups) and the STL filename with its full path. Renaming rewrites link membership and the live record. |
+
+The offset steps from how many instances already exist, not from a loop counter, so duplicating
+one at a time marches copies along rather than restacking them at the same spot.
+
+A piece row can now carry selection, an instance badge, four actions, unlink and visibility.
+The trailing controls are one flex group so a narrow sidebar drops the whole cluster to a second
+line rather than stranding a single button, and the label ellipsises instead of wrapping.
 
 The offset steps from how many instances already exist, not from a loop counter, so duplicating
 one at a time marches copies along rather than restacking them at the same spot.

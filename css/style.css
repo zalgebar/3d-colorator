@@ -1224,6 +1224,19 @@ dialog h2 .count {
   white-space: nowrap;
 }
 
+/* Rows can carry a lot now — selection, duplication, linking, visibility — so
+   the top line wraps rather than crushing the label. */
+.piece-row-top { flex-wrap: wrap; }
+.piece-row-top .piece-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* one trailing group, so a narrow sidebar drops the whole control cluster to
+   the next line instead of stranding a single button */
+.row-tools { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; }
+.piece-actions { display: inline-flex; align-items: center; gap: 4px; }
+.piece-actions .icon-btn { width: 22px; height: 22px; }
+.piece-actions .icon-btn svg { width: 13px; height: 13px; }
+.piece-actions .icon-btn.dup:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
+.inst-badge.row { padding: 1px 5px; font-size: 10px; }
+
 .piece-more {
   display: flex;
   align-items: center;

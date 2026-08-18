@@ -21,6 +21,21 @@ const UNLINK_SVG =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
   '<path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 0 1 3.4 8.6"/><line x1="3" y1="3" x2="21" y2="21"/></svg>';
 
+const DUP_SVG =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+  '<rect x="9" y="9" width="12" height="12" rx="2"/>' +
+  '<path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+
+const LAYERS_SVG =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+  '<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/>' +
+  '<polyline points="2 12 12 17 22 12"/></svg>';
+
+const TRASH_SVG =
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+  '<path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>' +
+  '<path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
+
 const EYE_SVG =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
   '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>' +
@@ -387,6 +402,8 @@ export class PieceList {
 
     const top = document.createElement("div");
     top.className = "piece-row-top";
+    const tools = document.createElement("span");
+    tools.className = "row-tools";
 
     if (this.designOn && this.links) top.appendChild(this.buildCheckbox(def.id));
 
@@ -405,24 +422,73 @@ export class PieceList {
         e.stopPropagation();
         this.links.removeMember(inGroup.id, def.id);
       });
-      top.appendChild(un);
+      tools.appendChild(un);
     }
 
+    // Duplication is a primary authoring action, so it sits on the row rather
+    // than behind a menu. `⋯` keeps only the occasional things: id and STL path.
     if (this.designOn && this.pieceApi) {
       const inst = this.pieceApi.instanceIndex(def.id);
+      if (inst.total > 1) {
+        const badge = document.createElement("span");
+        badge.className = "inst-badge row";
+        badge.textContent = "⧉ " + inst.index + "/" + inst.total;
+        badge.title = inst.file.split("/").pop() + " is used by " + inst.total + " pieces";
+        top.appendChild(badge);
+      }
+
+      const acts = document.createElement("span");
+      acts.className = "piece-actions";
+
+      const dup = document.createElement("button");
+      dup.type = "button";
+      dup.className = "icon-btn dup";
+      dup.innerHTML = DUP_SVG;
+      dup.title = "Duplicate this piece once";
+      dup.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const created = await this.pieceApi.duplicate(def.id, 1, false);
+        if (created) toast("Added " + created[0].label);
+      });
+
+      const many = document.createElement("button");
+      many.type = "button";
+      many.className = "icon-btn dup";
+      many.innerHTML = LAYERS_SVG;
+      many.title = "Duplicate several, optionally linked…";
+      many.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.openDuplicateDialog(def);
+      });
+
+      const sole = !this.pieceApi.canDelete(def.id);
+      const del = document.createElement("button");
+      del.type = "button";
+      del.className = "icon-btn del";
+      del.innerHTML = TRASH_SVG;
+      del.disabled = sole;
+      del.title = sole
+        ? "This is the only instance of " + inst.file.split("/").pop() +
+          " — remove the STL from the print instead"
+        : "Remove this instance";
+      del.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const label = def.label;
+        if (this.pieceApi.remove(def.id)) toast("Removed " + label);
+      });
+
       const more = document.createElement("button");
       more.type = "button";
-      more.className = "piece-more" + (inst.total > 1 ? " has-copies" : "");
-      more.textContent = inst.total > 1 ? "⧉" : "⋯";
-      more.title =
-        inst.total > 1
-          ? "Instance " + inst.index + " of " + inst.total + " — id, duplicate, remove"
-          : "Piece id, duplicate, remove";
+      more.className = "icon-btn";
+      more.textContent = "⋯";
+      more.title = "Piece id and STL file";
       more.addEventListener("click", (e) => {
         e.stopPropagation();
         this.openPieceInfo(def);
       });
-      top.appendChild(more);
+
+      acts.append(dup, many, del, more);
+      tools.appendChild(acts);
     }
 
     const eye = document.createElement("button");
@@ -434,7 +500,8 @@ export class PieceList {
       e.stopPropagation();
       this.toggleVisible(def.id);
     });
-    top.appendChild(eye);
+    tools.appendChild(eye);
+    top.appendChild(tools);
     row.appendChild(top);
 
     if (this.designOn) row.appendChild(this.buildColorsButton(def));
@@ -821,41 +888,27 @@ export class PieceList {
       toast("id " + from + " → " + next);
     });
 
-    els.duplicate.addEventListener("click", async () => {
-      const created = await this.pieceApi.duplicate(this.pieceInfoId, 1, false);
-      if (created) {
-        toast("Added " + created[0].label);
-        this.renderPieceInfo();
-      }
-    });
-
-    els.duplicateMany.addEventListener("click", () => {
-      els.dupCount.value = 3;
-      els.dupLink.checked = true;
-      els.dupTitle.textContent = this.pieceLabel(this.pieceInfoId);
-      els.dupDialog.showModal();
-    });
     els.dupCancel.addEventListener("click", () => els.dupDialog.close());
     els.dupCreate.addEventListener("click", async () => {
       let n = parseInt(els.dupCount.value, 10);
       if (isNaN(n) || n < 1) n = 1;
       n = Math.min(n, 24);
       const link = els.dupLink.checked;
+      const target = this.duplicateTargetId;
       els.dupDialog.close();
-      const created = await this.pieceApi.duplicate(this.pieceInfoId, n, link);
-      if (created) {
-        toast("Added " + n + (link ? " linked" : "") + " cop" + (n === 1 ? "y" : "ies"));
-        this.renderPieceInfo();
-      }
+      const created = await this.pieceApi.duplicate(target, n, link);
+      if (created) toast("Added " + n + (link ? " linked" : "") + " cop" + (n === 1 ? "y" : "ies"));
     });
+  }
 
-    els.remove.addEventListener("click", () => {
-      const id = this.pieceInfoId;
-      const label = this.pieceLabel(id);
-      if (!this.pieceApi.remove(id)) return;
-      els.dialog.close();
-      toast("Removed " + label);
-    });
+  openDuplicateDialog(def) {
+    const els = this.pieceEls;
+    if (!els) return;
+    this.duplicateTargetId = def.id;
+    els.dupCount.value = 3;
+    els.dupLink.checked = true;
+    els.dupTitle.textContent = def.label;
+    els.dupDialog.showModal();
   }
 
   pieceLabel(id) {
@@ -892,10 +945,6 @@ export class PieceList {
     els.instances.textContent = "⧉ " + inst.index + " of " + inst.total;
 
     const sole = !this.pieceApi.canDelete(def.id);
-    els.remove.disabled = sole;
-    els.remove.title = sole
-      ? "This is the only instance of " + file + " — remove the STL from the print instead"
-      : "Remove this instance";
     els.dupHint.textContent = sole
       ? "Duplicating adds another instance of " + file + ", placed beside this one."
       : file + " is used by " + inst.total + " pieces. Each is placed and colored on its own.";
