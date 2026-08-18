@@ -11,8 +11,8 @@
   "camera": null,
   "links": [
     {
-      "id": "link_msz4uzxe",
-      "label": "",
+      "id": "controls",
+      "label": "Buttons & Thumbstick",
       "members": [
         "thumbstick",
         "buttons"
@@ -42,7 +42,7 @@
         1
       ],
       "centerOrigin": true,
-      "defaultColor": "ss_orange"
+      "defaultColor": "orange"
     },
     {
       "id": "lid",
@@ -64,7 +64,7 @@
         1
       ],
       "centerOrigin": true,
-      "defaultColor": "ss_orange"
+      "defaultColor": "orange"
     },
     {
       "id": "buttons",

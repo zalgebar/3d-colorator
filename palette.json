@@ -2,8 +2,8 @@
   "version": 1,
   "colors": [
     {
-      "id": "ss_orange",
-      "name": "SeedSigner Orange",
+      "id": "orange",
+      "name": "Orange",
       "hex": "#f75403",
       "opacity": 1
     },
@@ -39,7 +39,7 @@
     },
     {
       "id": "black",
-      "name": "Matte Black",
+      "name": "Black",
       "hex": "#000000",
       "opacity": 1
     },
@@ -66,6 +66,42 @@
       "name": "Brown",
       "hex": "#6f5034",
       "opacity": 1
+    },
+    {
+      "id": "clear",
+      "name": "Translucent",
+      "hex": "#c9c9c9",
+      "opacity": 0.8
+    },
+    {
+      "id": "orange_trans",
+      "name": "Translucent Orange",
+      "hex": "#f75403",
+      "opacity": 0.8
+    },
+    {
+      "id": "blue_trans",
+      "name": "Translucent Blue",
+      "hex": "#003dcc",
+      "opacity": 0.8
+    },
+    {
+      "id": "red_trans",
+      "name": "Translucent Red",
+      "hex": "#eb3a3a",
+      "opacity": 0.8
+    },
+    {
+      "id": "yellow_trans",
+      "name": "Translucent Yellow",
+      "hex": "#ffd00b",
+      "opacity": 0.8
+    },
+    {
+      "id": "green_trans",
+      "name": "Translucent Green",
+      "hex": "#00ae42",
+      "opacity": 0.8
     }
   ]
 }
