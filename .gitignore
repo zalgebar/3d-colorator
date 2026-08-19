@@ -6,3 +6,9 @@ Thumbs.db
 
 # MacOS temp files
 .DS_Store
+
+# local editor / tooling config
+.claude/
+
+# screenshots saved from the app
+design-*.png
