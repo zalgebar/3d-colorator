@@ -192,7 +192,9 @@ function init() {
         state.selectedId = null;
         pieceList.updateSelection(null);
       }
-      if (!visible) viewer.frameView();
+      // Deliberately no reframe: hiding a piece is a way to look *past* it, so
+      // moving the camera underneath the user defeats the point. Use Fit Object
+      // in Frame (or F) to reframe on purpose.
     },
   });
 
