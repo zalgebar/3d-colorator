@@ -33,3 +33,17 @@ export function validateId(id, taken) {
   if (taken.has(value)) return "That id is already taken";
   return null;
 }
+
+// Per-group accent, taken in order and repeating past the end of the set.
+//
+// An earlier version hashed the group id so a colour would survive reordering,
+// but a hash cannot promise distinctness: with five colours, `controls` and a
+// new group's default id `group` both landed on the same violet. Distinct
+// colours are the point of the stripe, so position wins — the first five groups
+// are always different, and only the sixth repeats.
+export const GROUP_STRIPES = ["#37c8b4", "#ffb454", "#b980ff", "#ff7a9c", "#8fd14f"];
+
+export function stripeAt(index) {
+  const i = Number.isInteger(index) && index >= 0 ? index : 0;
+  return GROUP_STRIPES[i % GROUP_STRIPES.length];
+}

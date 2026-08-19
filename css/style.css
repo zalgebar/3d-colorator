@@ -1032,24 +1032,37 @@ dialog h2 .count {
   bottom: 0;
   width: 3px;
   border-radius: 8px 0 0 8px;
-  background: var(--link);
+  background: var(--stripe, var(--link));
 }
 
+.group-head-wrap { border-bottom: 1px solid var(--border); }
+
+/* Row 1: what the group is. Row 2: what you can do to it. Splitting them keeps
+   the controls on a consistent baseline instead of wrapping unpredictably when
+   the sidebar is narrow. */
 .group-head {
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 7px 9px 7px 12px;
-  border-bottom: 1px solid var(--border);
-  /* the sidebar can be narrow; let the mode toggle drop to its own line
-     rather than crushing the name field */
-  flex-wrap: wrap;
+  padding: 7px 9px 5px 12px;
 }
 
-.group-head .group-name { min-width: 90px; }
-.group-head .seg { margin-left: auto; }
+/* the visitor header stands alone — no controls row beneath it */
+.group-head.solo { padding: 7px 9px 7px 12px; border-bottom: 1px solid var(--border); }
 
-.group-head .chain { display: flex; color: var(--link); flex-shrink: 0; }
+.group-head .group-name { flex: 1; min-width: 70px; }
+.group-head .id-field { margin-left: auto; }
+
+.group-controls {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 9px 7px 12px;
+}
+
+.group-controls .unlink-btn { margin-left: auto; }
+
+.group-head .chain { display: flex; color: var(--stripe, var(--link)); flex-shrink: 0; }
 .group-head .chain svg { width: 14px; height: 14px; }
 
 .group-name {

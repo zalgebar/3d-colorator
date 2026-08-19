@@ -8,6 +8,7 @@
 import { paintSwatch, swatchTitle } from "./swatch.js";
 import { toast } from "./toast.js";
 import { openFloatingMenu, closeMenus } from "./menu.js";
+import { stripeAt } from "../data/ids.js";
 
 export { closeMenus };
 
@@ -112,6 +113,8 @@ export class PieceList {
     const box = document.createElement("div");
     box.className = "group";
     box.dataset.groupId = group.id;
+    // Same stripe in both modes — it is the "these move together" signal.
+    box.style.setProperty("--stripe", stripeAt(this.print.links.indexOf(group)));
     box.appendChild(this.designOn ? this.groupHeadOwner(group) : this.groupHeadVisitor(group));
 
     const body = document.createElement("div");
@@ -197,6 +200,9 @@ export class PieceList {
       }
     });
 
+    const controls = document.createElement("div");
+    controls.className = "group-controls";
+
     const seg = document.createElement("span");
     seg.className = "seg";
     const bCol = document.createElement("button");
@@ -210,7 +216,7 @@ export class PieceList {
     bCol.addEventListener("click", () => this.links.setCollapsed(group.id, true));
     bSep.addEventListener("click", () => this.links.setCollapsed(group.id, false));
     seg.append(bCol, bSep);
-    head.appendChild(seg);
+    controls.appendChild(seg);
 
     const un = document.createElement("button");
     un.type = "button";
@@ -218,14 +224,17 @@ export class PieceList {
     un.innerHTML = UNLINK_SVG;
     un.title = "Dissolve this group";
     un.addEventListener("click", () => this.links.unlink(group.id));
-    head.appendChild(un);
+    controls.appendChild(un);
 
-    return head;
+    const wrap = document.createElement("div");
+    wrap.className = "group-head-wrap";
+    wrap.append(head, controls);
+    return wrap;
   }
 
   groupHeadVisitor(group) {
     const head = document.createElement("div");
-    head.className = "group-head";
+    head.className = "group-head solo";
     const chain = document.createElement("span");
     chain.className = "chain";
     chain.innerHTML = CHAIN_SVG;
