@@ -105,6 +105,8 @@ will ask its recipient to pick a replacement.
 1. Put the STLs under `stls/my_case/`.
 2. Create `prints/my_case.json` using the schema above.
 3. Add `{ "id": "my_case", "name": "My Case", "categories": [...] }` to `prints/manifest.json`.
+   Add an optional `"thumbnail": "thumbs/my_case.png"` to give it a picture in the print picker;
+   without one it gets a name-only tile.
 4. Open `/?design`, place the pieces with the gizmo, then **Download JSON** and save it over
    `prints/my_case.json`.
 5. Commit and push.

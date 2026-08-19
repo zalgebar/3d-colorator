@@ -21,6 +21,7 @@ import { slugId, validateId } from "./data/ids.js";
 import { buildShareLink, parseShareLink, classifyShared } from "./ui/share.js";
 import { loadCollections, pickCollection, printsFor } from "./data/collections.js";
 import { isCustom, customColor } from "./data/palette.js";
+import { rememberPrint, visibleRecents } from "./ui/recents.js";
 import { paintSwatch, swatchTitle } from "./ui/swatch.js";
 
 const isOwner = new URLSearchParams(window.location.search).has("design");
@@ -39,7 +40,9 @@ const state = {
 
 const els = {};
 [
-  "print-select", "print-desc", "piece-list", "editor-panel", "selected-name",
+  "btn-open-prints", "current-print", "current-print-name", "recent-prints",
+  "splash-dialog", "splash-title", "splash-intro", "splash-grid", "btn-splash-close",
+  "print-desc", "piece-list", "editor-panel", "selected-name",
   "transform-modes", "transform-inputs", "btn-reset-transform", "btn-reset-all",
   "btn-frame", "btn-origin", "btn-axes", "btn-grid", "btn-screenshot",
   "btn-copy", "btn-download", "btn-import", "btn-download-design", "btn-import-design",
@@ -343,6 +346,18 @@ function wireUI() {
   els.btnSubmitSend.addEventListener("click", () => designIO.send());
   els.btnSubmitCancel.addEventListener("click", () => els.submitDialog.close());
 
+  els.btnOpenPrints.addEventListener("click", () => openSplash({ dismissible: !!state.print }));
+  els.btnSplashClose.addEventListener("click", () => els.splashDialog.close());
+  // With nothing loaded there is nothing to go back to, so Escape picks instead
+  // of dismissing.
+  els.splashDialog.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    if (state.print) return;
+    e.preventDefault();
+    const first = visiblePrints()[0];
+    if (first) choosePrint(first.id);
+  });
+
   els.btnCopyLink.addEventListener("click", copyShareLink);
   els.btnOrderCancel.addEventListener("click", () => {
     els.orderDialog.close();
@@ -414,11 +429,17 @@ async function loadCatalog() {
     paletteEditor.render();
     const listed = visiblePrints();
     if (listed.length) {
-      const wanted =
-        share.print && listed.some((p) => p.id === share.print) ? share.print : listed[0].id;
-      await setPrint(wanted);
-      if (isOwner) setDesignMode(true);
-      applySharedColors(share.colors);
+      // Skip the picker when the choice is already made: a ?print= link is a
+      // request for that print, and a collection with one print has no choice
+      // to offer. Otherwise the picker is the front door.
+      const shared = share.print && listed.some((p) => p.id === share.print) ? share.print : null;
+      const direct = shared || (listed.length === 1 ? listed[0].id : null);
+      if (direct) {
+        await setPrint(direct);
+        applySharedColors(share.colors);
+      } else {
+        openSplash({ dismissible: false });
+      }
     }
   } catch (err) {
     toast("Error loading catalog: " + err.message, true);
@@ -429,40 +450,124 @@ function visiblePrints() {
   return printsFor(state.collection, state.manifest.prints);
 }
 
-// A dropdown rather than a list of cards: the catalog is meant to grow, and a
-// card per print stops scaling long before a select does.
+// The sidebar names the current print, lists the others seen recently, and
+// offers the full catalog. The button says what it does rather than echoing the
+// current print, which the line above already states.
 function buildPrintUI() {
   const prints = visiblePrints();
-  els.printSelect.innerHTML = "";
-  els.printSelect.disabled = !prints.length;
-
-  if (!prints.length) {
-    // Better an honest empty state than leaking another collection's prints.
-    const option = document.createElement("option");
-    option.textContent = "No prints in this collection yet";
-    els.printSelect.appendChild(option);
-    return;
-  }
-
-  prints.forEach((entry) => {
-    const option = document.createElement("option");
-    option.value = entry.id;
-    option.textContent = entry.name;
-    els.printSelect.appendChild(option);
-  });
-
-  els.printSelect.onchange = () => {
-    const wanted = els.printSelect.value;
-    if (state.dirty && !confirm("You have unsaved changes. Switch print anyway?")) {
-      els.printSelect.value = state.print ? state.print.id : wanted;
-      return;
-    }
-    setPrint(wanted);
-  };
+  els.btnOpenPrints.disabled = !prints.length;
+  els.btnOpenPrints.textContent = prints.length ? "See All Prints" : "No prints in this collection";
+  showCurrentPrint();
+  buildRecents();
 }
 
-function markActivePrint(id) {
-  if (els.printSelect.value !== id) els.printSelect.value = id;
+function showCurrentPrint() {
+  els.currentPrint.classList.toggle("hidden", !state.print);
+  if (state.print) els.currentPrintName.textContent = state.print.name;
+}
+
+function buildRecents() {
+  // The current print is named above, so listing it here again would just be
+  // the redundancy this section is meant to avoid.
+  const recents = visibleRecents(visiblePrints())
+    .filter((entry) => !state.print || entry.id !== state.print.id)
+    .slice(0, 3);
+  els.recentPrints.innerHTML = "";
+  if (!recents.length) return;
+
+  const label = document.createElement("p");
+  label.className = "recents-label";
+  label.textContent = "Recent";
+  els.recentPrints.appendChild(label);
+
+  recents.forEach((entry) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "recent-print";
+    // Only show a swatch when there is an image for it — an empty square reads
+    // as a broken thumbnail rather than as "no thumbnail".
+    if (entry.thumbnail) {
+      const dot = document.createElement("span");
+      dot.className = "dot";
+      dot.style.backgroundImage = "url('" + entry.thumbnail + "')";
+      btn.appendChild(dot);
+    }
+    const nm = document.createElement("span");
+    nm.className = "nm";
+    nm.textContent = entry.name;
+    btn.appendChild(nm);
+    btn.addEventListener("click", () => choosePrint(entry.id));
+    els.recentPrints.appendChild(btn);
+  });
+}
+
+function markActivePrint() {
+  showCurrentPrint();
+  buildRecents();
+}
+
+// Guarded switch — used by every path that changes print.
+function choosePrint(id) {
+  if (state.print && state.print.id === id) {
+    els.splashDialog.close();
+    return;
+  }
+  if (state.dirty && !confirm("You have unsaved changes. Switch print anyway?")) return;
+  els.splashDialog.close();
+  rememberPrint(id);
+  setPrint(id);
+}
+
+// `dismissible` is false on first load: there is nothing behind the dialog yet,
+// so the visitor has to pick something before the app has anything to show.
+function openSplash({ dismissible = true } = {}) {
+  const prints = visiblePrints();
+  els.btnSplashClose.classList.toggle("hidden", !dismissible);
+  els.splashTitle.textContent = state.collection.name;
+  els.splashIntro.textContent = prints.length
+    ? state.collection.tagline || "Choose a print to colour."
+    : "No prints in this collection yet.";
+
+  els.splashGrid.innerHTML = "";
+  prints.forEach((entry) => {
+    const tile = document.createElement("button");
+    tile.type = "button";
+    tile.className = "print-tile" + (state.print && state.print.id === entry.id ? " current" : "");
+
+    const shot = document.createElement("span");
+    shot.className = "shot";
+    if (entry.thumbnail) {
+      // Verify the image actually loads: a stale path should fall back to the
+      // placeholder rather than leaving a blank tile.
+      const probe = new Image();
+      probe.onload = () => {
+        shot.style.backgroundImage = "url('" + entry.thumbnail + "')";
+        shot.classList.remove("placeholder");
+        shot.textContent = "";
+      };
+      probe.onerror = () => {};
+      probe.src = entry.thumbnail;
+    }
+    shot.classList.add("placeholder");
+    shot.textContent = entry.name.replace(/[^A-Za-z0-9 ]/g, "").split(/\s+/).slice(0, 2)
+      .map((w) => w[0] || "").join("").toUpperCase();
+
+    const label = document.createElement("span");
+    label.className = "label";
+    label.textContent = entry.name;
+    if (entry.categories.length) {
+      const meta = document.createElement("span");
+      meta.className = "meta";
+      meta.textContent = entry.categories.join(" · ");
+      label.appendChild(meta);
+    }
+
+    tile.append(shot, label);
+    tile.addEventListener("click", () => choosePrint(entry.id));
+    els.splashGrid.appendChild(tile);
+  });
+
+  els.splashDialog.showModal();
 }
 
 // Fetches the print file and its STLs on demand — the manifest alone builds the list.
@@ -483,7 +588,7 @@ async function setPrint(idOrPrint) {
   try {
     const print = typeof idOrPrint === "string" ? await loadPrint(wanted) : idOrPrint;
     state.print = print;
-    markActivePrint(print.id);
+    markActivePrint();
     els.printDesc.textContent = print.description;
 
     await Promise.all(print.pieces.map((def, i) => loadPiece(print, def, i)));
@@ -493,6 +598,11 @@ async function setPrint(idOrPrint) {
     editor.setGroup(viewer.group);
     viewer.frameView();
     showLoading(false);
+    rememberPrint(print.id);
+    buildRecents();
+    // A print can now arrive from the picker rather than only at startup, so
+    // design mode is entered here rather than once in loadCatalog.
+    if (isOwner && !state.designOn) setDesignMode(true);
     if (state.designOn) editor.select(firstPieceId());
   } catch (err) {
     showLoading(false);

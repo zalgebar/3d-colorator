@@ -37,8 +37,12 @@
   <aside class="sidebar">
     <section>
       <h2>Print</h2>
-      <select id="print-select" class="print-select"></select>
+      <div id="current-print" class="current-print hidden">
+        <p id="current-print-name" class="current-print-name"></p>
+      </div>
       <p id="print-desc" class="desc"></p>
+      <div id="recent-prints" class="recent-prints"></div>
+      <button id="btn-open-prints" class="btn wide center" type="button">See All Prints</button>
     </section>
 
     <section data-owner-only>
@@ -138,6 +142,15 @@
   <div class="dialog-actions">
     <button id="btn-piece-colors-cancel" class="btn" type="button">Cancel</button>
     <button id="btn-piece-colors-close" class="btn primary" type="button">Save</button>
+  </div>
+</dialog>
+
+<dialog id="splash-dialog" class="wide-dialog splash">
+  <h2 id="splash-title">Choose a print</h2>
+  <p class="hint" id="splash-intro"></p>
+  <div id="splash-grid" class="splash-grid"></div>
+  <div class="dialog-actions">
+    <button id="btn-splash-close" class="btn" type="button">Cancel</button>
   </div>
 </dialog>
 

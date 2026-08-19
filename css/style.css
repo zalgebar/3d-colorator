@@ -1060,6 +1060,10 @@ dialog h2 .count {
   padding: 0 9px 7px 12px;
 }
 
+/* .seg carries a bottom margin for its usual context; centring a margin box
+   would offset its border box by half of that, so clear it here. */
+.group-controls .seg { margin: 0; }
+.group-controls .seg button { padding: 3px 10px; font-size: 11px; flex: none; }
 .group-controls .unlink-btn { margin-left: auto; }
 
 .group-head .chain { display: flex; color: var(--stripe, var(--link)); flex-shrink: 0; }
@@ -1081,7 +1085,6 @@ dialog h2 .count {
 .group-name:focus { outline: none; border-color: var(--accent); background: var(--bg); }
 .group-name-ro { font-weight: 700; color: var(--text); }
 .group-head .parts { font-size: 11px; color: var(--text-dim); white-space: nowrap; }
-.group-head .seg button { padding: 3px 8px; font-size: 11px; flex: none; }
 
 .group-body {
   display: flex;
@@ -1362,3 +1365,88 @@ dialog h2 .count {
 .print-select:hover:not(:disabled) { border-color: #3d4a58; }
 .print-select:focus { outline: none; border-color: var(--accent); }
 .print-select:disabled { opacity: 0.5; cursor: default; }
+
+/* ---------- print picker / splash ---------- */
+.splash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+  max-height: 56vh;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.print-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--bg-3);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.print-tile:hover { border-color: var(--accent); }
+.print-tile.current { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+.print-tile .shot {
+  aspect-ratio: 4 / 3;
+  background: var(--bg);
+  background-size: cover;
+  background-position: center;
+  border-bottom: 1px solid var(--border);
+}
+
+/* a print with no thumbnail gets its initials rather than a broken image */
+.print-tile .shot.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.print-tile .label { padding: 8px 10px; font-size: 12px; font-weight: 600; }
+.print-tile .meta { display: block; margin-top: 2px; font-weight: 400; font-size: 10px; color: var(--text-dim); }
+
+.recent-prints { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
+
+.recent-print {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.recent-print:hover { border-color: #3d4a58; }
+.recent-print.current { border-color: var(--accent); background: rgba(79, 140, 255, 0.1); }
+.recent-print .dot { width: 16px; height: 16px; border-radius: 4px; background: var(--bg-3); background-size: cover; background-position: center; flex-shrink: 0; }
+.recent-print .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recents-label { margin: 10px 0 0; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); }
+
+/* ---------- current print ---------- */
+.current-print { margin-bottom: 8px; }
+
+.current-print-name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.btn.wide.center { text-align: center; margin-top: 8px; }

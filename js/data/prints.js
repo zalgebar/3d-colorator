@@ -140,6 +140,8 @@ export async function loadManifest() {
       id: String((e && e.id) || "print_" + i),
       name: String((e && e.name) || (e && e.id) || "Print"),
       categories: Array.isArray(e && e.categories) ? e.categories.map(String) : [],
+      // Optional. A print without one gets a name-only tile in the picker.
+      thumbnail: e && e.thumbnail ? String(e.thumbnail) : null,
     })),
   };
 }
