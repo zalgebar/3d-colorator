@@ -6,14 +6,16 @@
       "name": "Open Pill Mini w/ Coverplate",
       "categories": [
         "seedsigner"
-      ]
+      ],
+      "thumbnail": "thumbs/open_pill_mini_w_coverplate.png"
     },
     {
       "id": "open_pill_mini",
       "name": "Open Pill Mini",
       "categories": [
         "seedsigner"
-      ]
+      ],
+      "thumbnail": "thumbs/open_pill_mini.png"
     }
   ]
 }
