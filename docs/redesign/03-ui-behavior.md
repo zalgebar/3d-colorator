@@ -151,6 +151,34 @@ their kind, and shown as an **always-visible field** in the palette editor and t
 Why not auto-derive ids from names continuously: renaming would then silently break links, which
 is exactly what referencing by id exists to prevent.
 
+## Importing a customer order
+
+A submitted design carries a **snapshot** of the colors it used (D8), and import trusts that
+snapshot rather than the catalog: an id that still exists is not assumed to still *mean* the
+same thing, because a re-mixed color is a real difference on a printed order.
+
+Each ordered color is sorted into `exact`, `changed` (same id, different hex/opacity),
+`unoffered` (exists, but not for that piece) or `retired` (gone from the catalog). Anything
+other than `exact` opens a **dialog** — not a toast or banner, because a silently dropped color
+on a real order is a mis-print.
+
+The two audiences want opposite things from the same file:
+
+| | Owner (`?design`) | Visitor |
+| --- | --- | --- |
+| Goal | See what was actually ordered — that is what gets printed | See what is buyable now |
+| `retired` | Rendered **as ordered**, from the snapshot's hex/opacity, even though it is not in the palette | Must be replaced; nearest offered pre-picked |
+| `unoffered` | Rendered as ordered | Must be replaced |
+| `changed` | Rendered **as ordered**, with the current catalog entry shown beside it for comparison | Applied as the current version |
+
+Rendering a color that is not in the palette reuses the `Chosen` union's `{ custom }` arm,
+extended to carry a name and opacity. It is a viewing state, not a catalog edit: the print
+export writes the piece's authored `defaultColor` rather than letting an off-palette color leak
+into a print file.
+
+Import and export are available in **both modes** — the owner is the person most likely to be
+opening a customer's order.
+
 ## Collections
 
 Mockup: [`collections-mockup.html`](mockups/collections-mockup.html)

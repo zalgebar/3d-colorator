@@ -127,33 +127,71 @@ export class DesignIO {
       return;
     }
 
-    const palette = this.ctx.getPalette();
-    let applied = 0;
-    let approximated = 0;
-    // v1 files store hex, v2 store ids; both are accepted.
-    Object.entries(parsed.colors).forEach(([pieceId, value]) => {
-      if (typeof value !== "string") return;
-      let colorId = null;
-      if (HEX_RE.test(value)) {
-        const hit = colorIdForHex(palette, value);
-        if (!hit) return;
-        colorId = hit.id;
-        if (!hit.exact) approximated++;
-      } else if (palette.has(value)) {
-        colorId = value;
-      }
-      if (!colorId) return;
-      if (this.ctx.setPieceColor(pieceId, colorId)) applied++;
-    });
-
-    if (!applied) {
+    const report = this.classifyOrder(parsed);
+    if (!report.rows.length) {
       toast("No matching pieces found", true);
       return;
     }
-    toast(
-      "Imported " + applied + " color" + (applied === 1 ? "" : "s") +
-        (approximated ? " (" + approximated + " matched to the nearest palette color)" : "")
-    );
+    this.ctx.onOrderImported(report);
+  }
+
+  // Compares every ordered color against the snapshot the order carries, not
+  // against the catalog as it stands. An id that still exists is not assumed to
+  // still *mean* the same thing — a re-mixed color is a real difference, and on
+  // a printed order it matters.
+  classifyOrder(parsed) {
+    const palette = this.ctx.getPalette();
+    const snapshot = parsed.snapshot || {};
+    const rows = [];
+
+    Object.entries(parsed.colors).forEach(([pieceId, value]) => {
+      if (typeof value !== "string") return;
+      const target = this.ctx.getTarget(pieceId);
+      if (!target) return;
+
+      // v1 files store hex and have no snapshot; v2 store ids and do.
+      const asHex = HEX_RE.test(value);
+      const snap = !asHex ? snapshot[value] : { name: value, hex: value.toLowerCase(), opacity: 1 };
+      const current = !asHex ? palette.byId(value) : null;
+
+      let ordered;
+      if (snap) {
+        ordered = { name: snap.name || value, hex: String(snap.hex || "").toLowerCase(),
+                    opacity: typeof snap.opacity === "number" ? snap.opacity : 1 };
+      } else if (current) {
+        // no snapshot to go on — the catalog entry is the best we have
+        ordered = { name: current.name, hex: current.hex, opacity: current.opacity };
+      } else {
+        ordered = null;
+      }
+
+      const drifted =
+        !!(current && ordered) &&
+        (current.hex !== ordered.hex || current.opacity !== ordered.opacity);
+      const offered = !!current && target.offered.includes(value);
+
+      let kind = "exact";
+      if (!current) kind = "retired";
+      else if (drifted) kind = "changed";
+      else if (!offered) kind = "unoffered";
+
+      rows.push({
+        pieceId,
+        label: target.label,
+        requested: value,
+        ordered,
+        current: current ? { id: current.id, name: current.name, hex: current.hex, opacity: current.opacity } : null,
+        offered: target.offered,
+        kind,
+        // what a visitor would be switched to, if a switch is needed
+        replacement:
+          ordered && target.offered.length
+            ? palette.nearestId(ordered.hex, target.offered)
+            : target.offered[0] || null,
+      });
+    });
+
+    return { orderId: parsed.orderId || "", rows };
   }
 
   // ---- nostr submit dialog ----

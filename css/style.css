@@ -1312,3 +1312,39 @@ dialog h2 .count {
   font-size: 12px;
   text-align: center;
 }
+
+/* ---------- imported order review ---------- */
+#order-list { margin-top: 10px; max-height: 48vh; overflow-y: auto; }
+
+.order-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+
+.order-row:first-child { border-top: none; }
+.order-head { display: flex; align-items: center; gap: 10px; }
+.order-piece { font-weight: 700; }
+
+.order-kind {
+  margin-left: auto;
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.order-kind.exact { color: #8ef0df; border: 1px solid #234b46; background: #122320; }
+.order-kind.changed { color: var(--warn); border: 1px solid #6b5a12; background: #241f0d; }
+.order-kind.unoffered { color: var(--warn); border: 1px solid #6b5a12; background: #241f0d; }
+.order-kind.retired { color: #ffb4b4; border: 1px solid var(--danger); background: #3a1c1e; }
+
+.order-compare { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+.order-chip { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.order-chip .lbl { color: var(--text-dim); font-size: 11px; }
+.order-chip .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.order-note { font-size: 11px; color: var(--text-dim); }
+.order-row .dd { width: 100%; }

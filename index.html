@@ -76,7 +76,7 @@
       <p class="hint">Shortcuts: <b>G</b> move, <b>R</b> rotate, <b>S</b> scale, <b>F</b> frame, <b>Esc</b> deselect. Right-drag to orbit.</p>
     </section>
 
-    <section data-public-only>
+    <section>
       <h2>Share</h2>
       <div class="btn-row">
         <button id="btn-copy-link" class="btn primary" type="button">Copy share link</button>
@@ -138,6 +138,16 @@
   <div class="dialog-actions">
     <button id="btn-piece-colors-cancel" class="btn" type="button">Cancel</button>
     <button id="btn-piece-colors-close" class="btn primary" type="button">Save</button>
+  </div>
+</dialog>
+
+<dialog id="order-dialog" class="wide-dialog">
+  <h2><span id="order-dialog-title"></span></h2>
+  <p class="hint" id="order-dialog-intro"></p>
+  <div id="order-list"></div>
+  <div class="dialog-actions">
+    <button id="btn-order-cancel" class="btn" type="button">Cancel</button>
+    <button id="btn-order-apply" class="btn primary" type="button">Apply</button>
   </div>
 </dialog>
 

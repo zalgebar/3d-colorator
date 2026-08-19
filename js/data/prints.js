@@ -117,7 +117,11 @@ export function buildExportObject(print, records) {
         rotation: t.rotation,
         scale: t.scale,
         centerOrigin: def.centerOrigin !== false,
-        defaultColor: rec ? rec.color : def.defaultColor,
+        // A piece may currently be showing an off-palette color (an imported
+        // order placed before the catalog changed). That is a viewing state,
+        // not a catalog edit, so the authored default is written out instead.
+        defaultColor:
+          rec && typeof rec.color === "string" ? rec.color : def.defaultColor,
       };
       if (def.palette && def.palette.length) piece.palette = def.palette;
       return piece;

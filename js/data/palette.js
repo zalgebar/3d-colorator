@@ -40,6 +40,17 @@ export function isCustom(chosen) {
   return !!chosen && typeof chosen === "object" && HEX_RE.test(chosen.custom || "");
 }
 
+// An off-palette color that carries its own values. Used for a paid custom
+// request, and for showing an order exactly as it was placed when the catalog
+// has moved on since.
+export function customColor(hex, { name, opacity } = {}) {
+  return {
+    custom: String(hex).toLowerCase(),
+    name: name || String(hex).toLowerCase(),
+    opacity: typeof opacity === "number" ? Math.min(1, Math.max(0, opacity)) : 1,
+  };
+}
+
 // How a chosen color is written into a share link: ids bare, customs `~`-prefixed.
 export function chosenKey(chosen) {
   if (isCustom(chosen)) return "~" + chosen.custom.slice(1).toLowerCase();
@@ -155,7 +166,13 @@ export class Palette {
   // color has no catalog entry, so it carries its own hex and is always opaque.
   resolve(chosen) {
     if (isCustom(chosen)) {
-      return { id: null, name: chosen.custom, hex: chosen.custom.toLowerCase(), opacity: 1, custom: true };
+      return {
+        id: null,
+        name: chosen.name || chosen.custom,
+        hex: chosen.custom.toLowerCase(),
+        opacity: typeof chosen.opacity === "number" ? chosen.opacity : 1,
+        custom: true,
+      };
     }
     const c = this.byId(chosen);
     if (!c) return { id: null, name: String(chosen), hex: FALLBACK_HEX, opacity: 1, custom: false };

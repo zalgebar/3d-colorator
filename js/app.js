@@ -20,6 +20,7 @@ import { initSidebarResizer } from "./ui/resizer.js";
 import { slugId, validateId } from "./data/ids.js";
 import { buildShareLink, parseShareLink, classifyShared } from "./ui/share.js";
 import { loadCollections, pickCollection, printsFor } from "./data/collections.js";
+import { isCustom, customColor } from "./data/palette.js";
 import { paintSwatch, swatchTitle } from "./ui/swatch.js";
 
 const isOwner = new URLSearchParams(window.location.search).has("design");
@@ -54,6 +55,8 @@ const els = {};
   "btn-piece-colors-cancel",
   "brand-name", "brand-tagline", "about-contact", "about-donate",
   "order-id-label", "submit-shops",
+  "order-dialog", "order-dialog-title", "order-dialog-intro", "order-list",
+  "btn-order-cancel", "btn-order-apply",
   "btn-copy-link", "reconcile-dialog", "reconcile-count", "reconcile-list",
   "btn-reconcile-cancel", "btn-reconcile-apply",
   "sidebar-resizer", "link-bar", "link-count", "link-add-slot", "btn-new-group",
@@ -68,6 +71,7 @@ const els = {};
 
 let viewer, editor, pieceList, designIO, paletteEditor;
 let pendingReconcile = null;
+let pendingOrder = null;
 let gridVisible = isOwner;
 let axesVisible = isOwner;
 
@@ -241,6 +245,8 @@ function init() {
     getPalette: () => state.palette,
     getCollection: () => state.collection,
     setPieceColor: (id, colorId) => setPieceColor(id, colorId),
+    getTarget: (pieceId) => shareTarget(pieceId),
+    onOrderImported: (report) => openOrderDialog(report),
   });
 
   initSidebarResizer(els.sidebarResizer, document.querySelector(".sidebar"));
@@ -336,6 +342,15 @@ function wireUI() {
   els.btnSubmitCancel.addEventListener("click", () => els.submitDialog.close());
 
   els.btnCopyLink.addEventListener("click", copyShareLink);
+  els.btnOrderCancel.addEventListener("click", () => {
+    els.orderDialog.close();
+    pendingOrder = null;
+  });
+  els.btnOrderApply.addEventListener("click", () => {
+    els.orderDialog.close();
+    if (pendingOrder) applyOrder(pendingOrder);
+    pendingOrder = null;
+  });
   els.btnReconcileCancel.addEventListener("click", () => els.reconcileDialog.close());
   els.btnReconcileApply.addEventListener("click", () => {
     els.reconcileDialog.close();
@@ -651,6 +666,151 @@ function openReconcileDialog(problems) {
   draw();
   pendingReconcile = problems;
   els.reconcileDialog.showModal();
+}
+
+// ---- imported orders ----
+//
+// The two audiences want opposite things from the same file. The owner needs to
+// see what was actually ordered, even if that color has since been retired or
+// re-mixed — that is what they have to print. A visitor can only be shown what
+// is buyable now, so anything unavailable has to be swapped for something that
+// is. Both get a dialog rather than a toast, because a silently dropped color on
+// a real order is a mis-print.
+
+function orderRowNeedsChoice(row) {
+  return row.kind === "retired" || row.kind === "unoffered";
+}
+
+function openOrderDialog(report) {
+  const owner = isOwner;
+  const attention = report.rows.filter((r) => r.kind !== "exact");
+  const choices = report.rows.filter(orderRowNeedsChoice);
+
+  // Nothing to say: apply and get out of the way.
+  if (!attention.length) {
+    report.rows.forEach((row) => setPieceColor(row.pieceId, row.requested));
+    state.dirty = false;
+    toast("Imported " + report.rows.length + " color" + (report.rows.length === 1 ? "" : "s"));
+    return;
+  }
+
+  els.orderDialogTitle.textContent = owner
+    ? "Order imported as placed" + (report.orderId ? " — " + report.orderId : "")
+    : attention.length + " color" + (attention.length === 1 ? "" : "s") + " from this design changed";
+  els.orderDialogIntro.textContent = owner
+    ? "Shown exactly as ordered, including colors that have since changed or left the catalog. Nothing here is applied to your catalog."
+    : "Some colors in this design are no longer available. Pick a replacement for each — the rest are applied as saved.";
+
+  els.btnOrderApply.textContent = owner ? "Show as ordered" : "Apply colors";
+  els.btnOrderCancel.classList.toggle("hidden", owner && !choices.length ? false : false);
+
+  const draw = () => {
+    els.orderList.innerHTML = "";
+    report.rows.forEach((row) => {
+      if (row.kind === "exact") return;
+      els.orderList.appendChild(buildOrderRow(row, owner, draw));
+    });
+  };
+  draw();
+
+  pendingOrder = { report, owner };
+  els.orderDialog.showModal();
+}
+
+function buildOrderRow(row, owner, redraw) {
+  const el = document.createElement("div");
+  el.className = "order-row";
+
+  const head = document.createElement("div");
+  head.className = "order-head";
+  const piece = document.createElement("span");
+  piece.className = "order-piece";
+  piece.textContent = row.label;
+  const kind = document.createElement("span");
+  kind.className = "order-kind " + row.kind;
+  kind.textContent =
+    row.kind === "retired" ? "no longer in the catalog"
+      : row.kind === "changed" ? "color has changed since"
+        : "not offered for this piece";
+  head.append(piece, kind);
+  el.appendChild(head);
+
+  // What they ordered, drawn from the order's own snapshot — that is the point
+  // of carrying one, and it is the only reason a retired color can be shown.
+  const compare = document.createElement("div");
+  compare.className = "order-compare";
+  if (row.ordered) compare.appendChild(orderChip("ordered", row.ordered));
+  if (row.current && row.kind === "changed") compare.appendChild(orderChip("now", row.current));
+  el.appendChild(compare);
+
+  if (owner) {
+    const note = document.createElement("p");
+    note.className = "order-note";
+    note.textContent =
+      row.kind === "retired"
+        ? "Shown as ordered. This color is not in your palette any more."
+        : row.kind === "changed"
+          ? "Shown as ordered, which differs from the current catalog entry."
+          : "Shown as ordered. This piece no longer offers this color.";
+    el.appendChild(note);
+    return el;
+  }
+
+  if (!orderRowNeedsChoice(row)) {
+    const note = document.createElement("p");
+    note.className = "order-note";
+    note.textContent = "Applied as the current version of this color.";
+    el.appendChild(note);
+    return el;
+  }
+
+  el.appendChild(
+    pieceList.colorDropdown({
+      offered: row.offered,
+      current: () => row.replacement,
+      pick: (colorId) => {
+        row.replacement = colorId;
+        redraw();
+      },
+      key: "order:" + row.pieceId,
+    })
+  );
+  return el;
+}
+
+function orderChip(label, color) {
+  const chip = document.createElement("span");
+  chip.className = "order-chip";
+  const lbl = document.createElement("span");
+  lbl.className = "lbl";
+  lbl.textContent = label + ":";
+  const sw = document.createElement("span");
+  sw.className = "dd-sw";
+  paintSwatch(sw, color);
+  const nm = document.createElement("span");
+  nm.className = "nm";
+  nm.textContent = color.name + (color.opacity < 1 ? " · " + Math.round(color.opacity * 100) + "%" : "");
+  chip.append(lbl, sw, nm);
+  chip.title = swatchTitle(color);
+  return chip;
+}
+
+// Owner sees the order as placed; a visitor gets only what is currently buyable.
+function applyOrder({ report, owner }) {
+  report.rows.forEach((row) => {
+    if (owner) {
+      const asOrdered =
+        row.kind === "exact"
+          ? row.requested
+          : row.ordered
+            ? customColor(row.ordered.hex, { name: row.ordered.name, opacity: row.ordered.opacity })
+            : row.requested;
+      setPieceColor(row.pieceId, asOrdered);
+      return;
+    }
+    setPieceColor(row.pieceId, orderRowNeedsChoice(row) ? row.replacement : row.requested);
+  });
+  state.dirty = false;
 }
 
 // ---- STL instances ----
@@ -998,9 +1158,12 @@ function removeColorEverywhere(colorId) {
   return { reassigned };
 }
 
+// Accepts either arm of the Chosen union: a palette id, or an off-palette
+// color carrying its own hex/opacity.
 function setPieceColor(pieceId, colorId) {
   const rec = state.records.get(pieceId);
-  if (!rec || !state.palette.has(colorId)) return false;
+  const usable = typeof colorId === "string" ? state.palette.has(colorId) : isCustom(colorId);
+  if (!rec || !usable) return false;
 
   // Linked pieces always share one color, so a pick on any member sets the
   // group's color and writes through to the rest.
