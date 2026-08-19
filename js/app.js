@@ -523,7 +523,6 @@ async function loadPiece(print, def, index) {
   // casts a solid shadow. We accept that rather than dropping the shadow: in
   // this app shadows mostly fall on neighbouring pieces and read as "this part
   // is here", and a shadowless part looks detached from the assembly.
-  // 03-ui-behavior.md#opacity-rendering
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   mesh.userData.pieceId = def.id;
@@ -552,7 +551,7 @@ async function loadPiece(print, def, index) {
   // blend identical from every angle. It is an approximation (a piece may
   // composite over one that is physically nearer), but a stable picture beats a
   // correct-then-suddenly-different one. Pieces render back-pass then
-  // front-pass, in authored order. 03-ui-behavior.md#opacity-rendering
+  // front-pass, in authored order.
   backMesh.renderOrder = index * 2;
   mesh.renderOrder = index * 2 + 1;
 
@@ -823,7 +822,6 @@ function applyOrder({ report, owner }) {
 //
 // A duplicate is just another piece pointing at the same `file` — there is no
 // instanceOf field — so "instances" are derived by grouping on that path.
-// 01-data-model.md#duplicated-stls-d10
 
 function instancesOf(file) {
   if (!state.print) return [];

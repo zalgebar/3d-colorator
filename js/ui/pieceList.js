@@ -4,7 +4,6 @@
 // piece offers. The owner instead gets the subset editor: which palette colors
 // this piece offers, in what order, and which is its default.
 // Colors themselves are only ever created in the palette editor.
-// 03-ui-behavior.md#piece-subset-editor-owner
 
 import { paintSwatch, swatchTitle } from "./swatch.js";
 import { toast } from "./toast.js";

@@ -2,7 +2,7 @@
 //
 // A link carries palette **ids**, never hex, so it can only ever express colors
 // the shop actually offers, and names/opacity travel for free on the color
-// object. 01-data-model.md#share-links-d6-d7
+// object.
 //
 // What a link cannot carry is a snapshot: opening one resolves the ids against
 // whatever the catalog says *now*. So a color that was renamed or re-mixed under

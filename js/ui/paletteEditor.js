@@ -2,7 +2,6 @@
 //
 // This is the only place colors are created. Pieces reference colors by id, so
 // renaming or re-mixing one here updates every piece using it, immediately.
-// 03-ui-behavior.md#palette-editor-owner
 
 import { paintSwatch } from "./swatch.js";
 import { toast } from "./toast.js";

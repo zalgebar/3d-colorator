@@ -1,5 +1,5 @@
 // Print catalog: the manifest index, individual print files, and STL geometry.
-// Absorbs the old js/config.js. See docs/redesign/01-data-model.md
+// Absorbs the old js/config.js.
 
 import { STLLoader } from "three/addons/loaders/STLLoader.js";
 

@@ -1,6 +1,6 @@
 // Painting a color chip. Translucent colors are drawn over a checkerboard so
 // "45% smoke" is distinguishable from "dark grey" at a glance, in every surface
-// that shows a swatch. 03-ui-behavior.md#opacity-rendering
+// that shows a swatch.
 
 const CHECK = "#3a4048";
 const CHECKER = [

@@ -38,7 +38,6 @@ prints/<id>.json        one print: pieces, links, per-piece color offerings
 stls/<print>/*.stl      geometry
 ```
 
-Full schemas and the reasoning behind them: [`docs/redesign/01-data-model.md`](docs/redesign/01-data-model.md).
 
 ### palette.json
 
@@ -169,10 +168,17 @@ reconciliation, id rules — and reports pass/fail to the browser console.
 2. **Settings → Pages** → *Deploy from a branch* → `main` / `/` root.
 3. Live at `https://<user>.github.io/<repo>/`.
 
-## Design docs
+## Design record
 
-The redesign that produced this app — data model, phase plan, UI behavior specs, and
-interactive mockups of every surface — lives in [`docs/redesign/`](docs/redesign/).
+This app was rewritten from *SeedSigner Enclosure Designer*. The redesign plan — data model,
+phase-by-phase implementation notes, UI behavior specs and interactive mockups of every surface
+— is preserved in the git history under the `redesign-docs` tag, along with a commit per phase
+explaining what changed and why.
+
+```bash
+git show redesign-docs:docs/redesign/01-data-model.md
+git log --oneline seedsigner-designer-v1.0..redesign-docs
+```
 
 ## Disclosure
 

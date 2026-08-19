@@ -3,7 +3,7 @@
 // A collection is a filter plus a branding preset. `global` holds the defaults
 // every collection inherits; a collection overrides only what differs, so
 // SeedSigner Designer is this app pointed at the seedsigner category rather than
-// a fork of it. 01-data-model.md#collectionsjson
+// a fork of it.
 
 const URL_PATH = "collections.json";
 const FALLBACK = {

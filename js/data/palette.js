@@ -1,6 +1,6 @@
 // The app-wide color catalog. Everything references colors by `id` — pieces,
 // share links, submissions — so renaming or re-mixing a color never breaks a
-// reference. See docs/redesign/01-data-model.md#palettejson
+// reference.
 
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 const FALLBACK_HEX = "#cccccc";
@@ -34,7 +34,6 @@ export function normalizePalette(raw) {
 // request. Only ids are produced today — `{ custom }` is reserved for the paid
 // custom-color feature, but everything downstream already resolves it.
 //   type Chosen = string | { custom: "#rrggbb" }
-// 01-data-model.md#reserved-for-the-future-not-implemented
 
 export function isCustom(chosen) {
   return !!chosen && typeof chosen === "object" && HEX_RE.test(chosen.custom || "");
@@ -101,7 +100,7 @@ export class Palette {
   }
 
   // Which colors a piece offers: an absent or empty `palette` means the whole
-  // catalog, in catalog order. 01-data-model.md#piece-color-offering-d5
+  // catalog, in catalog order.
   offeredIds(piece) {
     const subset = Array.isArray(piece && piece.palette)
       ? piece.palette.filter((id) => this.has(id))
@@ -189,7 +188,6 @@ export class Palette {
   // buffer order, so the far wall is not reliably composited under the near one.
   // `twoPass` tells app.js to draw the piece as a back-face pass followed by a
   // front-face pass, which puts those surfaces in the right order.
-  // 03-ui-behavior.md#opacity-rendering
   toMaterial(chosen) {
     const c = this.resolve(chosen);
     const translucent = c.opacity < 1;
