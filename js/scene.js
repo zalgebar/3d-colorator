@@ -9,7 +9,12 @@ export class Viewer {
   constructor(canvas, { gridVisible = false, axesVisible = false } = {}) {
     this.canvas = canvas;
 
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    // Transparent clear: the viewport background is painted in CSS behind the
+    // canvas (see js/ui/background.js), which is the only way a checkerboard
+    // can be one of the choices. It also makes a transparent screenshot the
+    // canvas as-is rather than a second, differently-configured render.
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    this.renderer.setClearColor(0x000000, 0);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -137,9 +142,25 @@ export class Viewer {
     this.axes.visible = on;
   }
 
-  screenshot(filename, onDone) {
+  // `paintBackground(ctx, w, h, ratio)` bakes whatever CSS was showing behind
+  // the canvas into the file. Omit it for a transparent PNG — translucent
+  // pieces then carry partial alpha, so they take on whatever they are placed
+  // over rather than the colour that was approved here.
+  screenshot(filename, paintBackground, onDone) {
     this.renderer.render(this.scene, this.camera);
-    this.renderer.domElement.toBlob((blob) => {
+    const src = this.renderer.domElement;
+
+    let out = src;
+    if (paintBackground) {
+      out = document.createElement("canvas");
+      out.width = src.width;
+      out.height = src.height;
+      const ctx = out.getContext("2d");
+      paintBackground(ctx, out.width, out.height, this.renderer.getPixelRatio());
+      ctx.drawImage(src, 0, 0);
+    }
+
+    out.toBlob((blob) => {
       if (!blob) {
         onDone(null);
         return;

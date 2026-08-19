@@ -30,6 +30,10 @@
       <svg class="eye-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><path class="lens" d="M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>
       Grid
     </button>
+    <button id="btn-background" class="btn" type="button">
+      <span id="bg-swatch" class="bg-swatch"></span>
+      Background
+    </button>
   </div>
 </header>
 
@@ -84,7 +88,10 @@
       <h2>Share</h2>
       <div class="btn-row">
         <button id="btn-copy-link" class="btn primary" type="button">Copy share link</button>
-        <button id="btn-screenshot" class="btn">Screenshot</button>
+      </div>
+      <div class="btn-row">
+        <button id="btn-screenshot" class="btn">Screenshot no BG</button>
+        <button id="btn-screenshot-bg" class="btn">Screenshot with BG</button>
       </div>
       <div class="btn-row">
         <button id="btn-download-design" class="btn">Export Design</button>
@@ -93,7 +100,7 @@
       <div class="btn-row">
         <button id="btn-submit" class="btn primary" type="button">Submit design</button>
       </div>
-      <p class="hint">Share a link to your coloring, save it as JSON, or download a PNG of the current view. Submissions are sent as an encrypted NIP-17 direct message.</p>
+      <p class="hint">Share a link to your coloring, save it as JSON, or download a PNG of the current view &mdash; <b>with BG</b> bakes in the viewport background, <b>no BG</b> leaves it transparent. Submissions are sent as an encrypted NIP-17 direct message.</p>
     </section>
 
     <section data-owner-only>

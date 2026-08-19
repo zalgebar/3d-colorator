@@ -23,6 +23,7 @@ import { loadCollections, pickCollection, printsFor } from "./data/collections.j
 import { isCustom, customColor } from "./data/palette.js";
 import { rememberPrint, visibleRecents } from "./ui/recents.js";
 import { paintSwatch, swatchTitle } from "./ui/swatch.js";
+import { Background } from "./ui/background.js";
 
 const isOwner = new URLSearchParams(window.location.search).has("design");
 
@@ -45,6 +46,7 @@ const els = {};
   "print-desc", "piece-list", "editor-panel", "selected-name",
   "transform-modes", "transform-inputs", "btn-reset-transform", "btn-reset-all",
   "btn-frame", "btn-origin", "btn-axes", "btn-grid", "btn-screenshot",
+  "btn-screenshot-bg", "btn-background", "bg-swatch",
   "btn-copy", "btn-download", "btn-import", "btn-download-design", "btn-import-design",
   "btn-submit", "import-dialog", "import-text", "btn-import-apply", "btn-import-cancel",
   "design-import-dialog", "design-file", "design-import-text", "btn-design-import-apply",
@@ -72,7 +74,7 @@ const els = {};
   els[id.replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = document.getElementById(id);
 });
 
-let viewer, editor, pieceList, designIO, paletteEditor;
+let viewer, editor, pieceList, designIO, paletteEditor, background;
 let pendingReconcile = null;
 let pendingOrder = null;
 let gridVisible = isOwner;
@@ -84,6 +86,7 @@ function init() {
   initFeedback({ toast: els.toast, loading: els.loading });
 
   viewer = new Viewer(els.viewport, { gridVisible, axesVisible });
+  background = new Background(els.viewport.parentElement, els.btnBackground, els.bgSwatch);
   els.btnGrid.classList.toggle("active", gridVisible);
   els.btnAxes.classList.toggle("active", axesVisible);
 
@@ -312,12 +315,16 @@ function wireUI() {
     toast(gridVisible ? "Grid on" : "Grid off");
   });
 
-  els.btnScreenshot.addEventListener("click", () => {
+  const capture = (withBackground) => {
     const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-    viewer.screenshot("design-" + state.print.id + "-" + stamp + ".png", (name) => {
-      toast(name ? "Saved " + name : "Could not capture image", !name);
+    const name = "design-" + state.print.id + "-" + stamp + (withBackground ? "" : "-nobg") + ".png";
+    const paint = withBackground ? (...args) => background.paintInto(...args) : null;
+    viewer.screenshot(name, paint, (saved) => {
+      toast(saved ? "Saved " + saved : "Could not capture image", !saved);
     });
-  });
+  };
+  els.btnScreenshot.addEventListener("click", () => capture(false));
+  els.btnScreenshotBg.addEventListener("click", () => capture(true));
 
   els.btnDownloadDesign.addEventListener("click", () => {
     if (designIO.download()) state.dirty = false;

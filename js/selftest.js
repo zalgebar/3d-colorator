@@ -11,6 +11,7 @@ import { normalizePrint, buildExportObject } from "./data/prints.js";
 import { normalizeCollections, pickCollection, printsFor, resolveEnabled } from "./data/collections.js";
 import { slugify, uniqueId, validateId } from "./data/ids.js";
 import { buildShareLink, parseShareLink, classifyShared } from "./ui/share.js";
+import { normalizeBackground, CHECKER } from "./ui/background.js";
 
 const results = [];
 const check = (name, actual, expected) => {
@@ -30,6 +31,13 @@ const PALETTE = new Palette({
 });
 
 function run() {
+  // ---- viewport background ----
+  check("background keeps a hex", normalizeBackground("#00B140"), "#00b140");
+  check("background keeps the checkerboard", normalizeBackground(CHECKER), CHECKER);
+  check("background rejects a short hex", normalizeBackground("#fff"), "#000000");
+  check("background rejects a css colour name", normalizeBackground("red"), "#000000");
+  check("background rejects junk", normalizeBackground("javascript:x"), "#000000");
+
   // ---- ids ----
   check("slugify strips punctuation", slugify("Left Thumbstick!"), "left_thumbstick");
   check("slugify falls back", slugify("", "group"), "group");

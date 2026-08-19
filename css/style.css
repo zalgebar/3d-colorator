@@ -481,17 +481,66 @@ a { color: var(--accent); }
   background: #fff;
 }
 
+/* The canvas clears to transparent, so this is what sits behind the model.
+   Kept in step with Background.paintInto() in js/ui/background.js. */
 .viewport-wrap {
   flex: 1;
   position: relative;
   min-width: 0;
+  background: var(--viewport-bg, #000);
+}
+
+.viewport-wrap.checker,
+.bg-swatch.checker {
+  background-image:
+    linear-gradient(45deg, #ccc 25%, transparent 25%),
+    linear-gradient(-45deg, #ccc 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #ccc 75%),
+    linear-gradient(-45deg, transparent 75%, #ccc 75%);
+}
+
+.viewport-wrap.checker {
+  background-size: 24px 24px;
+  background-position: 0 0, 0 12px, 12px -12px, -12px 0;
 }
 
 #viewport {
   width: 100%;
   height: 100%;
   display: block;
-  background: radial-gradient(circle at 50% 40%, #1a212b, #0c0f13 70%);
+  background: transparent;
+}
+
+.bg-swatch {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  background-color: #fff;
+}
+
+.bg-swatch.checker {
+  background-size: 8px 8px;
+  background-position: 0 0, 0 4px, 4px -4px, -4px 0;
+}
+
+/* A colour input drawn as the swatch it sets, so the custom row lines up with
+   the preset rows above it. */
+.bg-swatch.as-input {
+  padding: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.bg-swatch.as-input::-webkit-color-swatch-wrapper { padding: 0; }
+.bg-swatch.as-input::-webkit-color-swatch { border: none; border-radius: 2px; }
+
+#btn-background {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .overlay {
