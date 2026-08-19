@@ -1,101 +1,186 @@
-# SeedSigner Enclosure Designer
+# 3D Colorator
 
-A static web page for previewing SeedSigner enclosure STL files in 3D and coloring each piece.
-Hosted on GitHub Pages — no build step required.
+A static web page for previewing multi-part 3D prints and coloring each piece from a
+shop-defined palette. No build step — it runs straight from GitHub Pages.
+
+**SeedSigner Designer** is this same app pointed at the SeedSigner prints:
+[`?collection=seedsigner`](#collections). Same code, same deployment, its own name and shop link.
 
 ## Run locally
 
 ```bash
-python -m http.server 8123
-# or: npx serve .
+python3 scripts/devserver.py 8130
 ```
 
-Then open http://localhost:8123 (a server is required — plain `file://` won't work due to browser CORS).
+Then open <http://localhost:8130>. A server is required — `file://` won't work, and the
+bundled dev server sends `Cache-Control: no-store` because browsers cache ES modules hard
+enough that an edited file under `js/` will otherwise keep running its previous version after
+a reload.
 
-## Owner mode
+## The two modes
 
-Visitors only see the enclosure picker and per-piece color pickers. The transform gizmo,
-Transform panel, and JSON export/import are hidden from them.
+| | URL | Can |
+| --- | --- | --- |
+| **Visitor** | `/` | Pick a color per piece, share a link, export/import a design, submit an order |
+| **Owner** | `/?design` | Everything above, plus edit the palette, each piece's color offering, links, duplication, and piece placement |
 
-As the owner you unlock the editing UI with a URL parameter:
+Owner mode is a URL parameter, not a login — it hides authoring controls from visitors, it does
+not secure anything. Nothing you do in the browser is saved automatically: you **download the
+JSON and commit it**.
+
+## Data files
 
 ```
-http://localhost:8123/index.html?design
+palette.json            the shop's filament catalog (app-wide)
+collections.json        branding + feature flags per storefront
+prints/manifest.json    index: id, name, categories — drives the sidebar
+prints/<id>.json        one print: pieces, links, per-piece color offerings
+stls/<print>/*.stl      geometry
 ```
 
-Bookmark that URL (or the live Pages URL with `?design`) to always land in owner mode.
-The pieces are already assembled in the config files, so the public page never asks a
-visitor to figure out how the parts go together.
+Full schemas and the reasoning behind them: [`docs/redesign/01-data-model.md`](docs/redesign/01-data-model.md).
 
-## Deploy to GitHub Pages
+### palette.json
 
-1. Push this folder to a GitHub repository.
-2. Repo → **Settings → Pages** → set source to **Deploy from a branch** → select `main` / `/` root.
-3. Your page is live at `https://<user>.github.io/<repo>/`.
-
-## Adding a new enclosure
-
-1. Put your STL files somewhere under `stls/`, e.g. `stls/my_case/Part_A.stl`.
-2. Create a config file `enclosures/my_case.json` (see schema below).
-3. Add the id to the list in `enclosures/manifest.json`.
-4. Commit and push — the new enclosure appears in the sidebar automatically.
-
-## Config schema
+One catalog for the whole app. Colors are objects with a stable **id**, and everything else —
+pieces, link groups, share links — references that id:
 
 ```jsonc
 {
-  "id": "my_case",                       // unique id; must match the filename + manifest entry
-  "name": "My Case",                     // shown in the sidebar
-  "description": "Optional text.",       // shown under the enclosure picker
-  "axes": { "up": "z" },                 // STL convention: "z" = height is the Z axis (recommended)
+  "version": 1,
+  "colors": [
+    { "id": "orange", "name": "Orange", "hex": "#f75403", "opacity": 1 },
+    { "id": "clear",  "name": "Translucent", "hex": "#c9c9c9", "opacity": 0.8 }
+  ]
+}
+```
+
+`opacity < 1` renders translucent, and you can see a piece's own interior ribs through it.
+Because references are by id, **renaming a color is always safe**. Changing an id is not: the
+app rewrites every reference in the catalog for you, but any share link already using the old id
+will ask its recipient to pick a replacement.
+
+### prints/&lt;id&gt;.json
+
+```jsonc
+{
+  "id": "my_case",
+  "name": "My Case",
+  "description": "Shown under the print picker.",
+  "categories": ["accessories"],
+  "axes": { "up": "z" },
+  "links": [
+    { "id": "shell", "label": "Shell", "members": ["top", "bottom"],
+      "collapsed": true, "color": "orange" }
+  ],
   "pieces": [
     {
-      "id": "part_a",                    // unique within the enclosure
-      "label": "Part A",                 // shown in the piece list
-      "file": "stls/my_case/Part_A.stl",
-      "position": [0, 0, 0],             // in mm (after the axes.up="z" mapping is applied)
-      "rotation": [0, 0, 0],             // radians, XYZ order
+      "id": "top",
+      "label": "Top",
+      "file": "stls/my_case/Top.stl",
+      "position": [0, 0, 0],
+      "rotation": [0, 0, 0],
       "scale": [1, 1, 1],
-      "centerOrigin": true,              // shift the part so its center is the transform pivot
-      "defaultColor": "#4d4d4d"          // color the piece starts with
+      "centerOrigin": true,
+      "palette": ["orange", "black"],
+      "defaultColor": "orange"
     }
   ]
 }
 ```
 
-`axes.up: "z"` is the CAD/3D-printing convention used by the bundled STLs. The app rotates
-these into the page's Y-up space automatically, so all position/rotation values you see and
-export are in that Y-up space.
+- **`palette`** is optional. Omit it and the piece offers the whole catalog in catalog order;
+  include it to restrict the piece to those colors, in that order.
+- **`links`** are color-only groups: members always share one color, but keep their own
+  placement and visibility. `collapsed: true` shows the group as a single item to visitors.
+- **Duplicating an STL** is just another piece entry with the same `file`. There is no
+  `instanceOf` — the app derives instances by grouping on the path, so several copies of one
+  STL cost a single fetch.
+- `axes.up: "z"` is the CAD/3D-printing convention the bundled STLs use; the app rotates them
+  into the page's Y-up space, so the numbers you see and export are in that Y-up space.
+- `centerOrigin: true` (the default) shifts a part so its visual center is its transform pivot.
+  Set it to `false` for a part already exported in assembly coordinates.
 
-### Why `centerOrigin`?
+## Adding a print
 
-Your STL files are exported with arbitrary local origins (the mesh geometry is not centered
-on the part itself). With `centerOrigin: true` (the default) the app shifts each part's
-geometry so its visual center becomes the origin of that part. This makes the Move / Rotate /
-Scale gizmo pivot around the middle of the part instead of a point floating outside it, and
-means a position of `[0, 0, 0]` puts the part's center at the assembly origin.
+1. Put the STLs under `stls/my_case/`.
+2. Create `prints/my_case.json` using the schema above.
+3. Add `{ "id": "my_case", "name": "My Case", "categories": [...] }` to `prints/manifest.json`.
+4. Open `/?design`, place the pieces with the gizmo, then **Download JSON** and save it over
+   `prints/my_case.json`.
+5. Commit and push.
 
-Set `"centerOrigin": false` on a piece only if you want to place it by its raw STL origin
-(e.g. a part whose file is already exported in assembly coordinates).
+The manifest is what the sidebar is built from, so a print's own file is only fetched when
+someone selects it.
 
-## Placing pieces (owner mode)
+## Collections
 
-Because each STL is authored in its own local coordinates, you assemble an enclosure once
-in Design mode and the saved placement becomes what every visitor sees:
+A collection is a filter plus a branding preset — one codebase, several storefronts.
 
-1. Open the page with `?design` and toggle **Design mode** (top right).
-2. Left-click a piece in the viewport to select it (or click its row in the sidebar).
-3. Drag the **Move / Rotate / Scale** gizmo, or type exact values in the Transform panel.
-   Keyboard: `G` move, `R` rotate, `S` scale, `F` frame view, `Esc` deselect. Right-drag to orbit.
-4. **Copy JSON** (or **Download JSON**), then paste the result back into the enclosure's
-   config file so the placement becomes the permanent default for everyone.
+```jsonc
+{
+  "global": {
+    "submit": { "enabled": true, "recipient": "zalgebar", "shops": [ … ] },
+    "customColors": { "enabled": false }
+  },
+  "collections": {
+    "default":    { "name": "3D Colorator", "tagline": "Color any 3D print", "filter": null },
+    "seedsigner": { "name": "SeedSigner", "tagline": "Enclosure Designer",
+                    "filter": { "categories": ["seedsigner"] } }
+  }
+}
+```
 
-Colors are per piece and purely a preview choice — they don't need to be committed.
+- Reach one with `?collection=<id>`. An unknown id falls back to `default`.
+- `filter: null` lists every print; otherwise a print matches if it carries **any** of the
+  listed categories.
+- Flags resolve as **global AND collection**: a collection that says nothing inherits global,
+  an explicit `false` opts out, and `global.submit.enabled: false` is a kill-switch nothing can
+  override.
+- Everything except `enabled` shallow-merges over global, so a collection can override just its
+  `shops` while inheriting the recipient and relays.
+
+## Sharing, orders and submissions
+
+**Share link** — `?print=<id>&<piece>=<colorId>`, carrying palette ids rather than hex, so a
+link can only ever express colors you actually offer. Opening one resolves the ids against the
+catalog as it stands then; anything unusable opens a dialog offering replacements.
+
+**Submit** sends the design as an encrypted NIP-17 direct message to the collection's recipient.
+Unlike a share link, a submission embeds a **snapshot** of the colors it used — it is the record
+of an order, so it stays meaningful even after you rename or re-mix the catalog.
+
+**Importing an order** trusts that snapshot rather than the current catalog. In `?design` the
+order is shown exactly as it was placed, including colors that have since been retired or
+re-mixed; a visitor is offered replacements from what is currently available.
+
+## Checking your work
+
+```
+/?selftest
+```
+
+Runs assertions over the pure logic — flag resolution, category matching, share encoding,
+reconciliation, id rules — and reports pass/fail to the browser console.
+
+## Deploy to GitHub Pages
+
+1. Push to a GitHub repository.
+2. **Settings → Pages** → *Deploy from a branch* → `main` / `/` root.
+3. Live at `https://<user>.github.io/<repo>/`.
+
+## Design docs
+
+The redesign that produced this app — data model, phase plan, UI behavior specs, and
+interactive mockups of every surface — lives in [`docs/redesign/`](docs/redesign/).
 
 ## Disclosure
 
-This project is an independent, community-built tool. It is **not affiliated with, endorsed by, or sponsored by** the SeedSigner project or its maintainers. "SeedSigner" and the SeedSigner name are trademarks of their respective owners, used here only to describe the hardware this tool is designed for. The official SeedSigner project lives at [https://seedsigner.com/](https://seedsigner.com/).
+This project is an independent, community-built tool. It is **not affiliated with, endorsed by,
+or sponsored by** the SeedSigner project or its maintainers. "SeedSigner" and the SeedSigner name
+are trademarks of their respective owners, used here only to describe hardware this tool can be
+pointed at. The official SeedSigner project lives at <https://seedsigner.com/>.
 
-## Support this Project
+## Support this project
 
-Donate to this project via lightning: zalgebar@rizful.com
+Donate via lightning: `zalgebar@rizful.com`

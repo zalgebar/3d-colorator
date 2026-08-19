@@ -19,31 +19,6 @@ import { toast } from "./toast.js";
 const NT = window.NostrTools;
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 
-function rgb(hex) {
-  const n = parseInt(hex.slice(1), 16);
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-}
-
-// Legacy designs store hex, the app now stores palette ids. Exact match first,
-// then nearest by RGB distance so an old file still lands somewhere sensible.
-export function colorIdForHex(palette, hex) {
-  const want = String(hex).toLowerCase();
-  const exact = palette.colors.find((c) => c.hex === want);
-  if (exact) return { id: exact.id, exact: true };
-  const target = rgb(want);
-  let best = null;
-  let bestD = Infinity;
-  palette.colors.forEach((c) => {
-    const p = rgb(c.hex);
-    const d = Math.hypot(target[0] - p[0], target[1] - p[1], target[2] - p[2]);
-    if (d < bestD) {
-      bestD = d;
-      best = c;
-    }
-  });
-  return best ? { id: best.id, exact: false } : null;
-}
-
 export class DesignIO {
   constructor(els, ctx) {
     this.els = els;

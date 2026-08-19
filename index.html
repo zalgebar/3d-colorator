@@ -37,7 +37,7 @@
   <aside class="sidebar">
     <section>
       <h2>Print</h2>
-      <div id="print-list" class="print-list"></div>
+      <select id="print-select" class="print-select"></select>
       <p id="print-desc" class="desc"></p>
     </section>
 
@@ -251,6 +251,7 @@
   <div id="identity-nsec" class="identity-box hidden">
     <input id="nsec-input" type="password" autocomplete="off" spellcheck="false" placeholder="nsec1… or hex secret key">
     <label class="check-row"><input type="checkbox" id="nsec-remember"> Remember this key in this browser</label>
+    <p class="warn-note">⚠ Your secret key will be stored <b>unencrypted</b> in this browser. Only do this on a device you control. Not sure what an nsec is? Leave this unchecked.</p>
     <p class="hint">No keys yet? Generate your own at <a href="https://nostr.org/" target="_blank" rel="noopener">nostr.org</a> and paste the secret key here.</p>
   </div>
 

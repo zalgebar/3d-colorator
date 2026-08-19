@@ -60,8 +60,11 @@ export class DesignEditor {
     if (this.selectedId === id || this.tc.dragging) return;
     this.selectedId = id;
     this.tc.attach(mesh);
+    // Selecting is not editing: onSelect populates the transform panel from the
+    // mesh, so firing onTransform here only served to mark the session dirty
+    // for merely clicking a piece — which design mode does automatically on
+    // load, making the unsaved-changes guard fire on an untouched session.
     if (this.onSelect) this.onSelect(id);
-    if (this.onTransform) this.onTransform(id, this.transformOf(id));
   }
 
   detach() {

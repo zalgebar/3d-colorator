@@ -39,7 +39,7 @@ const state = {
 
 const els = {};
 [
-  "print-list", "print-desc", "piece-list", "editor-panel", "selected-name",
+  "print-select", "print-desc", "piece-list", "editor-panel", "selected-name",
   "transform-modes", "transform-inputs", "btn-reset-transform", "btn-reset-all",
   "btn-frame", "btn-origin", "btn-axes", "btn-grid", "btn-screenshot",
   "btn-copy", "btn-download", "btn-import", "btn-download-design", "btn-import-design",
@@ -427,34 +427,40 @@ function visiblePrints() {
   return printsFor(state.collection, state.manifest.prints);
 }
 
+// A dropdown rather than a list of cards: the catalog is meant to grow, and a
+// card per print stops scaling long before a select does.
 function buildPrintUI() {
-  els.printList.innerHTML = "";
   const prints = visiblePrints();
+  els.printSelect.innerHTML = "";
+  els.printSelect.disabled = !prints.length;
+
   if (!prints.length) {
     // Better an honest empty state than leaking another collection's prints.
-    const empty = document.createElement("p");
-    empty.className = "print-empty";
-    empty.textContent = "No prints in this collection yet.";
-    els.printList.appendChild(empty);
+    const option = document.createElement("option");
+    option.textContent = "No prints in this collection yet";
+    els.printSelect.appendChild(option);
     return;
   }
+
   prints.forEach((entry) => {
-    const card = document.createElement("div");
-    card.className = "print-card";
-    card.dataset.printId = entry.id;
-    card.textContent = entry.name;
-    card.addEventListener("click", () => {
-      if (state.dirty && !confirm("You have unsaved changes. Switch print anyway?")) return;
-      setPrint(entry.id);
-    });
-    els.printList.appendChild(card);
+    const option = document.createElement("option");
+    option.value = entry.id;
+    option.textContent = entry.name;
+    els.printSelect.appendChild(option);
   });
+
+  els.printSelect.onchange = () => {
+    const wanted = els.printSelect.value;
+    if (state.dirty && !confirm("You have unsaved changes. Switch print anyway?")) {
+      els.printSelect.value = state.print ? state.print.id : wanted;
+      return;
+    }
+    setPrint(wanted);
+  };
 }
 
 function markActivePrint(id) {
-  [...els.printList.children].forEach((card) => {
-    card.classList.toggle("active", card.dataset.printId === id);
-  });
+  if (els.printSelect.value !== id) els.printSelect.value = id;
 }
 
 // Fetches the print file and its STLs on demand — the manifest alone builds the list.
@@ -1481,6 +1487,11 @@ function onKeyDown(e) {
     state.selectedId = null;
     pieceList.updateSelection(null);
   }
+}
+
+// ?selftest runs the pure-logic assertions and reports to the console.
+if (new URLSearchParams(window.location.search).has("selftest")) {
+  import("./selftest.js").then((m) => m.runSelfTest());
 }
 
 init();

@@ -219,7 +219,8 @@ SeedSigner Designer, and the global submit switch hides submission everywhere.
 
 ## Testing without a framework
 
-The repo has no test runner and shouldn't gain a build step. Practical coverage:
+Implemented as **`/?selftest`** (`js/selftest.js`) — 42 assertions over the pure logic,
+reported to the browser console. Practical coverage:
 
 - **Round-trip check**: load → export → reload → deep-equal. Catches most normalization bugs.
 - **A `?selftest` mode** running assertions over pure functions (flag resolution, category
