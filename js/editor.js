@@ -12,7 +12,6 @@ export class DesignEditor {
     this.onTransform = onTransform;
 
     this.group = null;
-    this.meshes = new Map();
     this.selectedId = null;
     this.enabled = false;
 
@@ -36,15 +35,36 @@ export class DesignEditor {
 
   setGroup(group) {
     this.group = group;
-    this.rebuild();
   }
 
-  rebuild() {
-    this.meshes.clear();
-    if (!this.group) return;
+  // Pieces are looked up in the live scene graph rather than from an index.
+  //
+  // The index used to be built once when a print loaded, so a mesh added after
+  // that — a duplicate — was invisible to both select() and the raycaster, and
+  // invisible in the worst way: select() found nothing and simply returned, so
+  // clicking a fresh copy did nothing at all and said nothing about it. Every
+  // future path that adds or removes a mesh would have had to remember to
+  // reindex. A print has a handful of meshes, so walking them per click costs
+  // nothing next to the class of bug it removes.
+  meshFor(id) {
+    if (!this.group) return null;
+    let found = null;
     this.group.traverse((o) => {
-      if (o.isMesh && o.userData.pieceId) this.meshes.set(o.userData.pieceId, o);
+      if (!found && o.isMesh && o.userData.pieceId === id) found = o;
     });
+    return found;
+  }
+
+  // Only the front-face mesh of each piece carries a pieceId; the back-face
+  // pass is a child without one, so it never becomes a click target.
+  pickTargets() {
+    const out = [];
+    if (this.group) {
+      this.group.traverse((o) => {
+        if (o.isMesh && o.userData.pieceId && o.visible) out.push(o);
+      });
+    }
+    return out;
   }
 
   setEnabled(on) {
@@ -55,7 +75,7 @@ export class DesignEditor {
 
   select(id) {
     if (!this.enabled) return;
-    const mesh = this.meshes.get(id);
+    const mesh = this.meshFor(id);
     if (!mesh) return;
     if (this.selectedId === id || this.tc.dragging) return;
     this.selectedId = id;
@@ -81,12 +101,12 @@ export class DesignEditor {
   }
 
   transformOf(id) {
-    const mesh = this.meshes.get(id);
+    const mesh = this.meshFor(id);
     return mesh ? transformToArray(mesh) : null;
   }
 
   applyTransform(id, t) {
-    const mesh = this.meshes.get(id);
+    const mesh = this.meshFor(id);
     if (!mesh) return;
     mesh.position.set(t.position[0], t.position[1], t.position[2]);
     mesh.rotation.set(t.rotation[0], t.rotation[1], t.rotation[2]);
@@ -115,7 +135,7 @@ export class DesignEditor {
     );
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(ndc, this.camera);
-    const targets = Array.from(this.meshes.values()).filter((m) => m.visible);
+    const targets = this.pickTargets();
     const hits = raycaster.intersectObjects(targets, false);
     return hits.length ? hits[0].object.userData.pieceId : null;
   }

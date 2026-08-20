@@ -1087,7 +1087,6 @@ function renamePieceId(from, to) {
     g.members = g.members.map((m) => (m === from ? to : m));
   });
   if (state.selectedId === from) state.selectedId = to;
-  editor.setGroup(viewer.group);
   rebuildPieceList();
   markDirty();
   return null;
