@@ -1,0 +1,123 @@
+{
+  "id": "8bit_nostrich",
+  "name": "8bit Nostrich",
+  "description": "",
+  "categories": [],
+  "axes": {
+    "up": "z"
+  },
+  "camera": null,
+  "links": [],
+  "pieces": [
+    {
+      "id": "beak",
+      "label": "Beak",
+      "file": "stls/8bit_nostrich/beak.stl",
+      "position": [
+        19.5,
+        13.886296600018369,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        1.5707963267948966
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "centerOrigin": true,
+      "defaultColor": "orange"
+    },
+    {
+      "id": "body",
+      "label": "Body",
+      "file": "stls/8bit_nostrich/body.stl",
+      "position": [
+        -7,
+        2.669708515401087,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "centerOrigin": true,
+      "defaultColor": "purple"
+    },
+    {
+      "id": "foot",
+      "label": "Foot",
+      "file": "stls/8bit_nostrich/foot.stl",
+      "position": [
+        11.75,
+        -28,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "centerOrigin": true,
+      "defaultColor": "orange"
+    },
+    {
+      "id": "foot_2",
+      "label": "Foot 2",
+      "file": "stls/8bit_nostrich/foot.stl",
+      "position": [
+        -4.25,
+        -28,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "centerOrigin": true,
+      "defaultColor": "orange"
+    },
+    {
+      "id": "stand",
+      "label": "Stand",
+      "file": "stls/8bit_nostrich/stand.stl",
+      "position": [
+        3,
+        -31.5,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "centerOrigin": true,
+      "defaultColor": "purple"
+    }
+  ]
+}

@@ -16,6 +16,12 @@
         "seedsigner"
       ],
       "thumbnail": "thumbs/open_pill_mini.png"
+    },
+    {
+      "id": "8bit_nostrich",
+      "name": "8bit Nostrich",
+      "categories": [],
+      "thumbnail": "thumbs/8bit_nostrich.png"
     }
   ]
 }
