@@ -2,6 +2,11 @@ import * as THREE from "three";
 import { TransformControls } from "three/addons/controls/TransformControls.js";
 import { transformToArray } from "./data/prints.js";
 
+// How far the pointer may travel between down and up and still count as a
+// click. Left-drag also orbits the camera, so anything past this is a look-
+// around, not a deselect.
+const CLICK_SLOP = 4;
+
 export class DesignEditor {
   constructor({ scene, camera, dom, controls, onSelect, onTransform }) {
     this.scene = scene;
@@ -30,7 +35,9 @@ export class DesignEditor {
       }
     });
 
+    this.pendingDeselect = null;
     this.dom.addEventListener("pointerdown", (e) => this.handlePointerDown(e));
+    this.dom.addEventListener("pointerup", (e) => this.handlePointerUp(e));
   }
 
   setGroup(group) {
@@ -123,14 +130,25 @@ export class DesignEditor {
   }
 
   handlePointerDown(e) {
+    this.pendingDeselect = null;
     if (!this.enabled || e.button !== 0) return;
     const hit = this.pick(e);
     if (hit) {
       this.select(hit);
       return;
     }
-    if (this.hitGizmo(e)) return;
-    this.detach();
+    if (this.hitGizmo()) return;
+    // Empty space. Whether that deselects depends on what happens next: the
+    // same button orbits the camera, so this waits for the pointer to come up
+    // somewhere near where it went down.
+    this.pendingDeselect = { x: e.clientX, y: e.clientY };
+  }
+
+  handlePointerUp(e) {
+    const start = this.pendingDeselect;
+    this.pendingDeselect = null;
+    if (!start || !this.enabled) return;
+    if (Math.hypot(e.clientX - start.x, e.clientY - start.y) <= CLICK_SLOP) this.detach();
   }
 
   pick(e) {
@@ -146,15 +164,18 @@ export class DesignEditor {
     return hits.length ? hits[0].object.userData.pieceId : null;
   }
 
-  hitGizmo(e) {
-    const rect = this.dom.getBoundingClientRect();
-    const ndc = new THREE.Vector2(
-      ((e.clientX - rect.left) / rect.width) * 2 - 1,
-      -((e.clientY - rect.top) / rect.height) * 2 + 1
-    );
-    const raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(ndc, this.camera);
-    const gizmo = this.tc.getHelper();
-    return raycaster.intersectObject(gizmo, true).length > 0;
+  // Is the pointer over a gizmo handle? TransformControls has already worked
+  // that out by the time this runs: its own pointerdown listener is attached
+  // first, because it is constructed before ours, and it starts by hovering the
+  // pointer against the gizmo's picker handles for the current mode, leaving
+  // the handle's name in `axis`, or null for a miss.
+  //
+  // Raycasting getHelper() here looked equivalent and was not. That helper
+  // carries the gizmo *and* TransformControls' 100000x100000 drag plane, which
+  // is invisible but still raycastable, so while anything was selected a click
+  // anywhere on screen reported a gizmo hit — and the deselect below it was
+  // unreachable from the day it was written.
+  hitGizmo() {
+    return this.tc.axis !== null;
   }
 }
