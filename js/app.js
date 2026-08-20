@@ -193,11 +193,7 @@ function init() {
       },
     },
     onVisibilityChange: (id, visible) => {
-      if (!visible && state.selectedId === id) {
-        editor.detach();
-        state.selectedId = null;
-        pieceList.updateSelection(null);
-      }
+      if (!visible && state.selectedId === id) editor.detach();
       // Deliberately no reframe: hiding a piece is a way to look *past* it, so
       // moving the camera underneath the user defeats the point. Use Fit Object
       // in Frame (or F) to reframe on purpose.
@@ -1035,10 +1031,7 @@ function deletePiece(pieceId) {
     viewer.group.remove(rec.mesh);
     state.records.delete(pieceId);
   }
-  if (state.selectedId === pieceId) {
-    editor.detach();
-    state.selectedId = null;
-  }
+  if (state.selectedId === pieceId) editor.detach();
   detachFromGroups([pieceId]);
   pruneGroups();
   applyGroupColors();
@@ -1598,11 +1591,7 @@ function onKeyDown(e) {
     els.transformModes.querySelectorAll("button").forEach((b) => b.classList.toggle("active", b.dataset.mode === mode));
     editor.setMode(mode);
   }
-  if (e.key === "Escape") {
-    editor.detach();
-    state.selectedId = null;
-    pieceList.updateSelection(null);
-  }
+  if (e.key === "Escape") editor.detach();
 }
 
 // ?selftest runs the pure-logic assertions and reports to the console.

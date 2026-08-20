@@ -88,8 +88,14 @@ export class DesignEditor {
   }
 
   detach() {
+    if (this.selectedId === null) return;
     this.selectedId = null;
     this.tc.detach();
+    // Deselecting is a selection change too. Without this, every caller had to
+    // remember to clear the transform panel itself, and none of them cleared
+    // all of it — so deleting, hiding, or clicking away from a piece left the
+    // panel showing that piece's name and its stale numbers.
+    if (this.onSelect) this.onSelect(null);
   }
 
   setMode(mode) {
