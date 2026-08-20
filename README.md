@@ -102,14 +102,34 @@ will ask its recipient to pick a replacement.
 
 ## Adding a print
 
-1. Put the STLs under `stls/my_case/`.
-2. Create `prints/my_case.json` using the schema above.
-3. Add `{ "id": "my_case", "name": "My Case", "categories": [...] }` to `prints/manifest.json`.
-   Add an optional `"thumbnail": "thumbs/my_case.png"` to give it a picture in the print picker;
-   without one it gets a name-only tile.
-4. Open `/?design`, place the pieces with the gizmo, then **Download JSON** and save it over
-   `prints/my_case.json`.
-5. Commit and push.
+Point the scaffolder at a folder of STLs:
+
+```bash
+python3 scripts/newprint.py ~/Downloads/my_case --name "My Case"
+```
+
+It copies the STLs to `stls/my_case/`, writes `prints/my_case.json` with one piece per file,
+and adds the manifest entry. Add `--category seedsigner` to put it in a collection,
+`--default-color green` to pick the starting color, and `--dry-run` to see what it would do
+first. Re-run with `--force` to regenerate — including after you add `thumbs/my_case.png`,
+which it picks up automatically.
+
+The one thing it cannot read off the files is where the pieces go, so it measures them and
+says which case you are in:
+
+- **Exported from one assembly** — the files already share a coordinate space, so it sets
+  `centerOrigin: false` and the print assembles correctly straight away.
+- **Exported part by part** — each file is centered on its own origin, so nothing says where
+  the parts belong. It sets `centerOrigin: true` and warns you that everything is stacked at
+  the origin. Open `/?design&print=my_case`, place the pieces with the gizmo, then
+  **Download JSON** and save it over `prints/my_case.json`.
+
+Either way, check it at `/?print=my_case`, then commit and push.
+
+Doing it by hand is four steps: STLs under `stls/my_case/`, a `prints/my_case.json` matching
+the schema above, a `{ "id": "my_case", "name": "My Case", "categories": [...] }` entry in
+`prints/manifest.json`, and an optional `"thumbnail": "thumbs/my_case.png"` — without one the
+print gets a name-only tile in the picker.
 
 The manifest is what the sidebar is built from, so a print's own file is only fetched when
 someone selects it.
