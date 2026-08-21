@@ -18,7 +18,7 @@ import { DesignIO } from "./ui/submit.js";
 import { initFeedback, toast, showLoading } from "./ui/toast.js";
 import { initSidebarResizer } from "./ui/resizer.js";
 import { slugId, validateId } from "./data/ids.js";
-import { buildShareLink, parseShareLink, classifyShared } from "./ui/share.js";
+import { buildShareLink, parseShareLink, classifyShared, canonicalUrl } from "./ui/share.js";
 import { loadCollections, pickCollection, printsFor } from "./data/collections.js";
 import { isCustom, customColor } from "./data/palette.js";
 import { rememberPrint, visibleRecents } from "./ui/recents.js";
@@ -444,9 +444,25 @@ async function loadCatalog() {
         openSplash({ dismissible: false });
       }
     }
+    // Covers the picker path, where no print was set and so nothing else has
+    // cleared the colors out of the URL yet.
+    syncUrl();
   } catch (err) {
     toast("Error loading catalog: " + err.message, true);
   }
+}
+
+// Keeps the address bar describing what is actually on screen. See canonicalUrl
+// in ui/share.js for what survives and why.
+function syncUrl() {
+  window.history.replaceState(
+    null,
+    "",
+    canonicalUrl({
+      search: window.location.search,
+      printId: state.print ? state.print.id : null,
+    })
+  );
 }
 
 function visiblePrints() {
@@ -603,6 +619,7 @@ async function setPrint(idOrPrint) {
     showLoading(false);
     rememberPrint(print.id);
     buildRecents();
+    syncUrl();
     // A print can now arrive from the picker rather than only at startup, so
     // design mode is entered here rather than once in loadCatalog.
     if (isOwner && !state.designOn) setDesignMode(true);

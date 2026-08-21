@@ -10,7 +10,7 @@ import { Palette, parseChosen, chosenKey, isCustom, customColor } from "./data/p
 import { normalizePrint, buildExportObject } from "./data/prints.js";
 import { normalizeCollections, pickCollection, printsFor, resolveEnabled } from "./data/collections.js";
 import { slugify, uniqueId, validateId } from "./data/ids.js";
-import { buildShareLink, parseShareLink, classifyShared } from "./ui/share.js";
+import { buildShareLink, parseShareLink, classifyShared, canonicalUrl } from "./ui/share.js";
 import { normalizeBackground, CHECKER } from "./ui/background.js";
 
 const results = [];
@@ -31,6 +31,23 @@ const PALETTE = new Palette({
 });
 
 function run() {
+  // ---- canonical url ----
+  const canon = (search, printId, pathname = "/") =>
+    canonicalUrl({ search, printId, origin: { pathname, search } });
+  check("url drops shared colors", canon("?print=a&lid=blue&buttons=red", "a"), "/?print=a");
+  check("url re-stamps the print", canon("?print=old&lid=blue", "new"), "/?print=new");
+  check("url keeps the collection", canon("?collection=seedsigner&print=a&lid=blue", "a"),
+    "/?collection=seedsigner&print=a");
+  check("url keeps design bare", canon("?design&print=a&lid=blue", "a"), "/?print=a&design");
+  check("url keeps selftest bare", canon("?selftest&print=a", "a"), "/?print=a&selftest");
+  check("url keeps a flag that has a value", canon("?design=1&print=a", "a"), "/?print=a&design=1");
+  check("url with no print", canon("?lid=blue", null), "/");
+  check("url with nothing to keep", canon("", null), "/");
+  check("url keeps the subpath", canon("?print=a&lid=blue", "a", "/3d-colorator/"),
+    "/3d-colorator/?print=a");
+  check("url escapes odd values", canon("?collection=a b&print=x", "x y"),
+    "/?collection=a%20b&print=x%20y");
+
   // ---- viewport background ----
   check("background keeps a hex", normalizeBackground("#00B140"), "#00b140");
   check("background keeps the checkerboard", normalizeBackground(CHECKER), CHECKER);

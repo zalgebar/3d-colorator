@@ -11,7 +11,13 @@
 
 import { parseChosen, isCustom } from "../data/palette.js";
 
-const RESERVED = new Set(["print", "collection", "design"]);
+// Params that say which storefront, which mode and which print this is, rather
+// than naming a color. Everything else in a link is a piece or a group.
+const RESERVED = new Set(["print", "collection", "design", "selftest"]);
+
+// Flags that are present-or-absent rather than key=value, kept bare so the URL
+// reads the way it was typed.
+const FLAGS = ["design", "selftest"];
 
 // Collapsed groups are one item to the visitor, so they travel as one key.
 // Separate groups list their members, which reads better and resolves the same.
@@ -40,6 +46,32 @@ export function buildShareLink({ print, links, records, origin = location }) {
   });
 
   return origin.origin + origin.pathname + "?" + params.toString();
+}
+
+// What the address bar should say once a link has been consumed.
+//
+// The colors are dropped. They were a snapshot of someone else's choices, and
+// the app applies them at load and never looks at the URL again — so the moment
+// the visitor picks a different color, or switches print, the address bar is
+// describing something that is no longer on screen. That matters because the
+// address bar is what people copy: they would be sharing the design they were
+// sent rather than the one they made. Copy share link builds a fresh link from
+// the live state, which is the only thing that can be accurate.
+//
+// `print` is kept and re-stamped as it changes, so reloading and bookmarking
+// still land where you are, and the session params survive for the same reason.
+export function canonicalUrl({ search, printId, origin = location }) {
+  const from = new URLSearchParams(search);
+  const parts = [];
+  const collection = from.get("collection");
+  if (collection) parts.push("collection=" + encodeURIComponent(collection));
+  if (printId) parts.push("print=" + encodeURIComponent(printId));
+  FLAGS.forEach((flag) => {
+    if (!from.has(flag)) return;
+    const value = from.get(flag);
+    parts.push(value ? flag + "=" + encodeURIComponent(value) : flag);
+  });
+  return origin.pathname + (parts.length ? "?" + parts.join("&") : "");
 }
 
 export function parseShareLink(search) {

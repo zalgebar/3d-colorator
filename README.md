@@ -167,6 +167,14 @@ A collection is a filter plus a branding preset — one codebase, several storef
 link can only ever express colors you actually offer. Opening one resolves the ids against the
 catalog as it stands then; anything unusable opens a dialog offering replacements.
 
+Once those colors are applied the app clears them out of the address bar, leaving
+`?print=<id>` — plus `?collection` and `?design` if they were there — and re-stamps `print` as
+you switch. The URL is read once at load and never again, so leaving the colors in it would
+mean the address bar kept describing the design you were *sent* long after you changed it, and
+that is the thing people copy. **Copy share link** builds a fresh link from what is on screen,
+which is the only version that can be right. The trade-off is that a reload no longer restores
+the colors from the link — reloading gives you the print as the shop authored it.
+
 **Submit** sends the design as an encrypted NIP-17 direct message to the collection's recipient.
 Unlike a share link, a submission embeds a **snapshot** of the colors it used — it is the record
 of an order, so it stays meaningful even after you rename or re-mix the catalog.
