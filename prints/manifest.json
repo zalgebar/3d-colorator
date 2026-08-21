@@ -22,6 +22,12 @@
       "name": "8bit Nostrich",
       "categories": [],
       "thumbnail": "thumbs/8bit_nostrich.png"
+    },
+    {
+      "id": "chicken_coop_tab",
+      "name": "Chicken Coop Tab",
+      "categories": [],
+      "thumbnail": "thumbs/chicken_coop_tab.png"
     }
   ]
 }

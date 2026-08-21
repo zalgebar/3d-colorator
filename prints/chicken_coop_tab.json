@@ -1,0 +1,35 @@
+{
+  "id": "chicken_coop_tab",
+  "name": "Chicken Coop Tab",
+  "description": "",
+  "categories": [],
+  "axes": {
+    "up": "z"
+  },
+  "camera": null,
+  "links": [],
+  "pieces": [
+    {
+      "id": "chicken_coop_tab",
+      "label": "Chicken Coop Tab",
+      "file": "stls/chicken_coop_tab/chicken_coop_tab.stl",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        1.5707963267948966,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "centerOrigin": true,
+      "defaultColor": "grey"
+    }
+  ]
+}
