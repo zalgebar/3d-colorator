@@ -167,16 +167,32 @@ export class GeometryCache {
     return file + "|" + up + "|" + (centerOrigin ? 1 : 0);
   }
 
+  // Fetched here rather than through STLLoader.loadAsync so the STL gets the
+  // same `no-cache` treatment as every JSON file above.
+  //
+  // Without it the two disagree, and quietly. GitHub Pages serves assets with
+  // `max-age=600` and no revalidation hint, so replacing an STL and pushing it
+  // leaves browsers rendering the previous geometry from cache — while the
+  // print file, being fetched with revalidation, updates immediately. The page
+  // looks current and the model is not, which reads as the app ignoring the
+  // repo. `no-cache` still caches; it just always asks first, so an unchanged
+  // STL costs a 304 and a changed one arrives.
   async get(file, { up = "z", centerOrigin = true } = {}) {
     const k = this.key(file, up, centerOrigin);
     if (this.map.has(k)) return this.map.get(k);
-    const promise = this.loader.loadAsync(file).then((geometry) => {
-      if (up === "z") geometry.rotateX(-Math.PI / 2);
-      geometry.computeVertexNormals();
-      if (centerOrigin) geometry.center();
-      geometry.computeBoundingBox();
-      return geometry;
-    });
+    const promise = fetch(file, { cache: "no-cache" })
+      .then((res) => {
+        if (!res.ok) throw new Error("Could not load " + file + " (" + res.status + ")");
+        return res.arrayBuffer();
+      })
+      .then((buffer) => {
+        const geometry = this.loader.parse(buffer);
+        if (up === "z") geometry.rotateX(-Math.PI / 2);
+        geometry.computeVertexNormals();
+        if (centerOrigin) geometry.center();
+        geometry.computeBoundingBox();
+        return geometry;
+      });
     this.map.set(k, promise);
     return promise;
   }
