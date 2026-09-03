@@ -2,20 +2,20 @@
 """Scaffold a print from a folder of STLs: writes prints/<id>.json and adds the
 manifest entry.
 
-The part this cannot guess is placement, so it measures instead of assuming.
-Two kinds of STL sets turn up, and they want opposite settings:
+Placement is the part this cannot guess, so it measures rather than assumes —
+and then avoids having to choose. Every piece gets `centerOrigin: true`, which
+makes the app centre the mesh on load so the transform handle always sits at the
+middle of the part, and each mesh's authored offset is written into `position`
+so a set exported from one assembly still lands assembled.
 
-  * Exported from one assembly — each file keeps the shared coordinate space,
-    so the parts are already in the right places relative to each other. Those
-    need `centerOrigin: false`, and then every position can stay at zero.
+That is lossless and needs no branch. An earlier version picked between
+`centerOrigin` true and false depending on how far apart the meshes sat, which
+could not tell a shared coordinate space from one part being exported in the
+wrong place, and got it wrong on exactly that case. Now the offsets are simply
+carried, and the measurement only describes what it saw.
 
-  * Exported part by part — each file is centred on its own origin, so nothing
-    in the files says where the parts go. Those get `centerOrigin: true` and a
-    warning: they will all sit on top of each other until they are placed in
-    design mode.
-
-Telling them apart is just a matter of looking at where the meshes actually
-sit, which is what `classify()` below does.
+Nothing here rewrites an STL. Moving geometry inside the file is a repair for a
+bad export, which is what scripts/recenter.py is for.
 
 Usage:
     python3 scripts/newprint.py <stl-folder> [options]
@@ -45,12 +45,12 @@ SLUG_RE = re.compile(r"^[a-z0-9_]+$")
 # land at 644 like every other STL and thumbnail in the repo.
 DATA_MODE = 0o644
 
-# Fraction of the assembly's diagonal that the piece centres have to span
-# before the set counts as sharing one coordinate space. Parts exported
-# individually land within rounding distance of each other; parts exported
-# from an assembly are metres apart by comparison, so anything in between is
-# unlikely and the exact cut-off does not matter much.
-SPREAD_RATIO = 0.05
+# How far from the rest of the set a part has to sit before it is called out,
+# as a multiple of half the largest part's diagonal. Real assembly offsets are
+# a part-width or two; a part exported in the wrong place is usually an order of
+# magnitude further, so anything in between is rare and the cut-off is not
+# delicate.
+OUTLIER_RATIO = 3.0
 
 
 # ---------------------------------------------------------------- ids
@@ -120,29 +120,60 @@ def bounds(path):
     return lo, hi
 
 
-def classify(boxes):
-    """Shared assembly space, or individually centred parts?
+def center_of(box):
+    lo, hi = box
+    return [(lo[i] + hi[i]) / 2 for i in range(3)]
 
-    Returns (center_origin, note). One piece is always centred: there is
-    nothing for it to be positioned relative to.
+
+def scene_offset(box, up):
+    """Where a mesh's own centre ends up once the app has loaded it.
+
+    GeometryCache rotates for the up axis *before* centring, so for `up: "z"` a
+    rotateX(-90) maps (x, y, z) to (x, z, -y). Writing this into `position`
+    puts a centred mesh back exactly where its file had it.
     """
+    cx, cy, cz = center_of(box)
+    return [cx, cz, -cy] if up == "z" else [cx, cy, cz]
+
+
+def describe(boxes):
+    """What the offsets look like, as a note rather than a decision."""
     if len(boxes) < 2:
-        return True, "single piece"
+        return "single piece"
 
-    centers = [[(lo[i] + hi[i]) / 2 for i in range(3)] for lo, hi in boxes]
-    lo = [min(b[0][i] for b in boxes) for i in range(3)]
-    hi = [max(b[1][i] for b in boxes) for i in range(3)]
-    diagonal = sum((hi[i] - lo[i]) ** 2 for i in range(3)) ** 0.5
+    centers = [center_of(b) for b in boxes]
+    spread = max(max(c[i] for c in centers) - min(c[i] for c in centers) for i in range(3))
+    if spread < 1e-6:
+        return "every mesh is centred on its own origin — pieces will overlap"
+    return "meshes carry a shared coordinate space (centres span %.2f)" % spread
 
-    spread = 0.0
-    for i in range(3):
-        axis = [c[i] for c in centers]
-        spread = max(spread, max(axis) - min(axis))
 
-    if diagonal > 0 and spread / diagonal >= SPREAD_RATIO:
-        return False, "parts share one coordinate space (centres span %.1f of %.1f)" % (
-            spread, diagonal)
-    return True, "parts are each centred on their own origin (centres span %.2f)" % spread
+def outliers(names, boxes):
+    """Parts sitting far from where the rest of the set sits.
+
+    A misplaced export and a legitimate assembly offset look alike to the
+    measurements, and carrying the offset preserves either faithfully — which is
+    wrong when it was a mistake. Comparing against the *median* centre keeps one
+    stray part from dragging the reference towards itself.
+    """
+    if len(boxes) < 3:
+        return []
+
+    centers = [center_of(b) for b in boxes]
+    median = [sorted(c[i] for c in centers)[len(centers) // 2] for i in range(3)]
+    # half the diagonal of the largest part: the scale at which "far" means something
+    reference = max(
+        sum((hi[i] - lo[i]) ** 2 for i in range(3)) ** 0.5 / 2 for lo, hi in boxes
+    )
+    if reference <= 0:
+        return []
+
+    out = []
+    for name, c in zip(names, centers):
+        dist = sum((c[i] - median[i]) ** 2 for i in range(3)) ** 0.5
+        if dist > OUTLIER_RATIO * reference:
+            out.append((name, dist))
+    return out
 
 
 # ---------------------------------------------------------------- io
@@ -232,7 +263,8 @@ def main(argv=None):
         except (ValueError, struct.error) as exc:
             fail("could not read %s (%s)" % (stl_name, exc))
 
-    center_origin, note = classify(boxes)
+    note = describe(boxes)
+    stray = outliers(stl_names, boxes)
 
     dest = os.path.join(STL_DIR, print_id)
     copying = os.path.normpath(dest) != os.path.normpath(folder)
@@ -250,18 +282,21 @@ def main(argv=None):
 
     pieces = []
     taken_pieces = set()
-    for stl_name in stl_names:
+    for stl_name, box in zip(stl_names, boxes):
         stem = os.path.splitext(stl_name)[0]
         piece_id = unique_id(slugify(stem, "piece"), taken_pieces)
         taken_pieces.add(piece_id)
+        # Rounded because these are millimetres off a float32 mesh, and a
+        # position of 20.874999046325684 in a hand-edited file helps nobody.
+        offset = [round(v, 4) + 0.0 for v in scene_offset(box, args.up)]
         pieces.append({
             "id": piece_id,
             "label": label_for(stem),
             "file": "stls/%s/%s" % (print_id, stl_name),
-            "position": [0, 0, 0],
+            "position": offset,
             "rotation": [0, 0, 0],
             "scale": [1, 1, 1],
-            "centerOrigin": center_origin,
+            "centerOrigin": True,
             "defaultColor": default_color,
         })
 
@@ -302,17 +337,30 @@ def main(argv=None):
     print("  %-22s %s" % ("stls", os.path.relpath(dest, ROOT) + ("  (copied)" if copying else "  (in place)")))
     print("  %-22s %s" % ("default color", default_color))
     print("  %-22s %s" % ("categories", ", ".join(args.category) or "(none — default collection only)"))
-    print("  %-22s %s" % ("centerOrigin", "%s — %s" % (center_origin, note)))
+    print("  %-22s %s" % ("offsets", note))
     print("  %-22s %s" % ("prints/…", os.path.relpath(print_path, ROOT)))
     print("  %-22s %s" % ("manifest", "entry %s" % ("replaced" if print_id in taken_prints else "added")))
 
+    placed = [p for p in pieces if any(p["position"])]
+    if placed:
+        print("  %-22s %s" % ("positions", ", ".join(
+            "%s %s" % (p["id"], p["position"]) for p in placed)))
+
     print()
-    if center_origin and len(pieces) > 1:
-        print("  next: every piece is at the origin and they will overlap. Open")
-        print("        /?design&print=%s and place them, then Copy JSON" % print_id)
-        print("        back into %s." % os.path.relpath(print_path, ROOT))
+    if len(pieces) > 1 and not placed:
+        print("  next: the meshes are each centred on their own origin, so nothing in")
+        print("        them says where the parts go and they will overlap. Open")
+        print("        /?design&print=%s and place them, then Download JSON" % print_id)
+        print("        over %s." % os.path.relpath(print_path, ROOT))
     else:
         print("  next: open /?print=%s and check it looks right." % print_id)
+    if stray:
+        print("  WARN: %s sits far from the rest of the set:" % (
+            "a part" if len(stray) == 1 else "some parts"))
+        for name, dist in stray:
+            print("        %s, %.1f from where the others are" % (name, dist))
+        print("        An offset that large is usually an export placed wrong rather")
+        print("        than an assembly. scripts/recenter.py can move it.")
     if not has_thumb:
         print("  next: add %s for the picker tile — screenshot the" % thumb_rel)
         print("        print, then re-run with --force to pick it up.")
