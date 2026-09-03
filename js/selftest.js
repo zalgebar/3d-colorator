@@ -99,6 +99,18 @@ function run() {
   check("export strips UI bookkeeping",
     JSON.stringify(buildExportObject(print, new Map())).includes("idFixed"), false);
 
+  // A pivot moved in design mode lives on the record, so it has to beat the
+  // authored value on the way out — the same way a chosen color beats
+  // defaultColor.
+  const pivotRec = (centerOrigin) => new Map([["a", {
+    centerOrigin,
+    mesh: { position: { x: 0, y: 0, z: 0 }, rotation: { x: 0, y: 0, z: 0 }, scale: { x: 1, y: 1, z: 1 } },
+  }]]);
+  const exportedA = (records) => buildExportObject(print, records).pieces[0].centerOrigin;
+  check("export defaults centerOrigin true", exportedA(new Map()), true);
+  check("export takes a moved pivot from the record", exportedA(pivotRec(false)), false);
+  check("export keeps a centred pivot from the record", exportedA(pivotRec(true)), true);
+
   // ---- collections ----
   const config = normalizeCollections({
     global: { submit: { enabled: true, recipient: "me", shops: [{ label: "g" }] }, customColors: { enabled: false } },

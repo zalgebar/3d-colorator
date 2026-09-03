@@ -1,6 +1,7 @@
 // Print catalog: the manifest index, individual print files, and STL geometry.
 // Absorbs the old js/config.js.
 
+import * as THREE from "three";
 import { STLLoader } from "three/addons/loaders/STLLoader.js";
 
 const MANIFEST_URL = "prints/manifest.json";
@@ -116,7 +117,8 @@ export function buildExportObject(print, records) {
         position: t.position,
         rotation: t.rotation,
         scale: t.scale,
-        centerOrigin: def.centerOrigin !== false,
+        // design mode can move a piece's pivot, so the record wins when there is one
+        centerOrigin: rec ? rec.centerOrigin !== false : def.centerOrigin !== false,
         // A piece may currently be showing an off-palette color (an imported
         // order placed before the catalog changed). That is a viewing state,
         // not a catalog edit, so the authored default is written out instead.
@@ -189,8 +191,17 @@ export class GeometryCache {
         const geometry = this.loader.parse(buffer);
         if (up === "z") geometry.rotateX(-Math.PI / 2);
         geometry.computeVertexNormals();
+
+        // Where the author put this mesh relative to its own middle, measured
+        // after the up-axis rotation so it is already in the page's space.
+        // center() is about to throw that away, and design mode needs it to
+        // move the pivot without moving the part.
+        geometry.computeBoundingBox();
+        const authored = geometry.boundingBox.getCenter(new THREE.Vector3());
+
         if (centerOrigin) geometry.center();
         geometry.computeBoundingBox();
+        geometry.userData.authoredCenter = authored;
         return geometry;
       });
     this.map.set(k, promise);

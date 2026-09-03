@@ -45,6 +45,7 @@ const els = {};
   "splash-dialog", "splash-title", "splash-intro", "splash-grid", "btn-splash-close",
   "print-desc", "piece-list", "editor-panel", "selected-name",
   "transform-modes", "transform-inputs", "btn-reset-transform", "btn-reset-all",
+  "btn-center-origin", "btn-move-origin", "origin-hint",
   "btn-frame", "btn-origin", "btn-axes", "btn-grid", "btn-screenshot",
   "btn-screenshot-bg", "btn-background", "bg-swatch",
   "btn-copy", "btn-download", "btn-import", "btn-download-design", "btn-import-design",
@@ -383,6 +384,11 @@ function wireUI() {
   els.btnCopyPalette.addEventListener("click", copyPalette);
   els.btnDownloadPalette.addEventListener("click", downloadPalette);
 
+  els.btnCenterOrigin.addEventListener("click", () => {
+    const rec = state.records.get(state.selectedId);
+    if (rec) setPieceCenterOrigin(state.selectedId, rec.centerOrigin === false);
+  });
+  els.btnMoveOrigin.addEventListener("click", () => moveSelectedToOrigin());
   els.btnResetTransform.addEventListener("click", resetSelected);
   els.btnResetAll.addEventListener("click", resetAllTransforms);
   els.btnCopy.addEventListener("click", copyConfig);
@@ -687,7 +693,12 @@ async function loadPiece(print, def, index) {
   backMesh.renderOrder = index * 2;
   mesh.renderOrder = index * 2 + 1;
 
-  state.records.set(def.id, { mesh, backMesh, def, color: colorId });
+  state.records.set(def.id, {
+    mesh, backMesh, def, color: colorId,
+    // Authored value stays on def; this is the one design mode edits, the
+    // same split as color vs def.defaultColor.
+    centerOrigin: def.centerOrigin !== false,
+  });
 }
 
 // ---- share links ----
@@ -1362,6 +1373,80 @@ function onSelectPiece(id) {
   const rec = state.records.get(id);
   els.selectedName.textContent = rec ? rec.def.label : "";
   buildTransformInputs(id);
+  showOriginState(id);
+}
+
+// ---- piece origin ----
+//
+// Whether a part pivots on its own middle or keeps the origin its author gave it
+// is a per-piece decision, and it is one the file cannot make: an offset is
+// equally a deliberate assembly position and an export dropped in the wrong
+// place. So the app shows the offset and lets the designer choose, and writes
+// the answer to the print JSON rather than to the STL. Rewriting geometry is a
+// repair for a bad export — scripts/recenter.py — not something to do by
+// accident from a viewer.
+
+const originOffset = (rec) => {
+  const authored = rec && rec.mesh.geometry.userData.authoredCenter;
+  return authored ? authored.length() : 0;
+};
+
+function showOriginState(id) {
+  const rec = id ? state.records.get(id) : null;
+  const on = !!rec && rec.centerOrigin !== false;
+  els.btnCenterOrigin.classList.toggle("active", on);
+  els.btnCenterOrigin.disabled = !rec;
+  els.btnMoveOrigin.disabled = !rec;
+
+  if (!rec) {
+    els.originHint.textContent = "";
+    return;
+  }
+  const away = originOffset(rec);
+  els.originHint.textContent = away < 1e-4
+    ? "This mesh is already centred on its own origin, so the pivot is the same either way."
+    : "This mesh is authored " + away.toFixed(2) + " from its own middle. Centre pivot moves"
+      + " the handle to the middle without moving the part; Move to origin moves the part.";
+}
+
+// Swaps the piece between the centred and as-authored copies of its geometry and
+// puts the position back so nothing appears to move. The correction is measured
+// rather than derived — the piece's own rotation and scale then take care of
+// themselves, which an offset computed by hand would have had to account for.
+async function setPieceCenterOrigin(pieceId, on) {
+  const rec = state.records.get(pieceId);
+  if (!rec || (rec.centerOrigin !== false) === on) return;
+
+  const box = new THREE.Box3();
+  rec.mesh.updateMatrixWorld(true);
+  const before = box.setFromObject(rec.mesh).getCenter(new THREE.Vector3());
+
+  const geometry = await state.geometry.get(rec.def.file, {
+    up: state.print.axes.up,
+    centerOrigin: on,
+  });
+  rec.mesh.geometry = geometry;
+  rec.backMesh.geometry = geometry;
+  rec.centerOrigin = on;
+
+  rec.mesh.updateMatrixWorld(true);
+  const after = box.setFromObject(rec.mesh).getCenter(new THREE.Vector3());
+  rec.mesh.position.add(before.sub(after));
+
+  onTransformChange(pieceId, editor.transformOf(pieceId));
+  buildTransformInputs(pieceId);
+  showOriginState(pieceId);
+  toast(on ? "Pivot is the part's middle" : "Pivot is the mesh's own origin");
+}
+
+function moveSelectedToOrigin() {
+  const id = state.selectedId;
+  const rec = id && state.records.get(id);
+  if (!rec) return;
+  rec.mesh.position.set(0, 0, 0);
+  onTransformChange(id, editor.transformOf(id));
+  buildTransformInputs(id);
+  toast(rec.def.label + " moved to the origin");
 }
 
 function onTransformChange(id, t) {
@@ -1429,22 +1514,45 @@ function updateTransformInputs(id, t) {
   });
 }
 
-function resetSelected() {
+// Restores the authored pivot without compensating: the caller is about to set
+// the authored position too, and those two were authored as a pair.
+async function restoreAuthoredOrigin(rec) {
+  const authored = rec.def.centerOrigin !== false;
+  if (rec.centerOrigin === authored) return;
+  const geometry = await state.geometry.get(rec.def.file, {
+    up: state.print.axes.up,
+    centerOrigin: authored,
+  });
+  rec.mesh.geometry = geometry;
+  rec.backMesh.geometry = geometry;
+  rec.centerOrigin = authored;
+}
+
+async function resetSelected() {
   if (!state.selectedId) return;
   const rec = state.records.get(state.selectedId);
   if (!rec) return;
+  await restoreAuthoredOrigin(rec);
   editor.applyTransform(state.selectedId, {
     position: rec.def.position,
     rotation: rec.def.rotation,
     scale: rec.def.scale,
   });
   updateTransformInputs(state.selectedId, meshTransform(rec.mesh));
+  showOriginState(state.selectedId);
 }
 
-function resetAllTransforms() {
+async function resetAllTransforms() {
+  await Promise.all(
+    state.print.pieces.map((def) => {
+      const rec = state.records.get(def.id);
+      return rec ? restoreAuthoredOrigin(rec) : null;
+    })
+  );
   state.print.pieces.forEach((def) => {
     editor.applyTransform(def.id, { position: def.position, rotation: def.rotation, scale: def.scale });
   });
+  showOriginState(state.selectedId);
   if (state.selectedId) {
     const rec = state.records.get(state.selectedId);
     if (rec) updateTransformInputs(state.selectedId, meshTransform(rec.mesh));
