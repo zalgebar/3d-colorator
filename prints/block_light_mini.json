@@ -1,0 +1,87 @@
+{
+  "id": "block_light_mini",
+  "name": "Block Light Mini",
+  "description": "A box for lighting up a colorful image.",
+  "categories": [],
+  "axes": {
+    "up": "z"
+  },
+  "camera": null,
+  "links": [],
+  "pieces": [
+    {
+      "id": "box",
+      "label": "Box",
+      "file": "stls/block_light_mini/box.stl",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        1.5707963267948966,
+        1.5707963267948966,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "centerOrigin": true,
+      "defaultColor": "orange"
+    },
+    {
+      "id": "diffuser",
+      "label": "Diffuser",
+      "file": "stls/block_light_mini/diffuser.stl",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        1.5707963267948966,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "centerOrigin": true,
+      "defaultColor": "grey",
+      "palette": [
+        "grey",
+        "white"
+      ]
+    },
+    {
+      "id": "light_holder",
+      "label": "Light Holder",
+      "file": "stls/block_light_mini/light_holder.stl",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        -1.5707963267948966,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "centerOrigin": true,
+      "defaultColor": "grey",
+      "palette": [
+        "grey",
+        "white"
+      ]
+    }
+  ]
+}

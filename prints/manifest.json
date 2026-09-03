@@ -28,6 +28,12 @@
       "name": "Chicken Coop Tab",
       "categories": [],
       "thumbnail": "thumbs/chicken_coop_tab.png"
+    },
+    {
+      "id": "block_light_mini",
+      "name": "Block Light Mini",
+      "thumbnail": "thumbs/block_light_mini.png",
+      "categories": []
     }
   ]
 }
