@@ -1,0 +1,35 @@
+{
+  "id": "wind_chime_sail_v1",
+  "name": "Wind Chime Sail v1",
+  "description": "A square sail for a wind chime.",
+  "categories": [],
+  "axes": {
+    "up": "z"
+  },
+  "camera": null,
+  "links": [],
+  "pieces": [
+    {
+      "id": "wind_chime_sail_v1",
+      "label": "Wind Chime Sail V1",
+      "file": "stls/wind_chime_sail_v1/wind-chime-sail-v1.stl",
+      "position": [
+        0.0,
+        0.0,
+        0.4
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "centerOrigin": true,
+      "defaultColor": "brown"
+    }
+  ]
+}
